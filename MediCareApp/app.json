@@ -1,0 +1,97 @@
+{
+  "expo": {
+    "name": "MediCare Alarm",
+    "slug": "medicare-alarm-app",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "automatic",
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#1a1a2e"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.safeabd.medicarealarm",
+      "buildNumber": "2",
+      "infoPlist": {
+        "UIBackgroundModes": [
+          "remote-notification",
+          "audio"
+        ],
+        "NSUserNotificationsUsageDescription": "We need permission to send you medication reminders.",
+        "NSMicrophoneUsageDescription": "We need access to the microphone to record voice messages for medication reminders."
+      },
+      "config": {
+        "usesNonExemptEncryption": false
+      },
+      "jsEngine": "hermes"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#1a1a2e"
+      },
+      "package": "com.safeabd.medicarealarm",
+      "permissions": [
+        "RECEIVE_BOOT_COMPLETED",
+        "VIBRATE",
+        "WAKE_LOCK",
+        "POST_NOTIFICATIONS",
+        "USE_FULL_SCREEN_INTENT",
+        "SYSTEM_ALERT_WINDOW",
+        "REQUEST_IGNORE_BATTERY_OPTIMIZATIONS",
+        "FOREGROUND_SERVICE",
+        "FOREGROUND_SERVICE_MEDIA_PLAYBACK",
+        "DISABLE_KEYGUARD",
+        "USE_FINGERPRINT",
+        "USE_BIOMETRIC",
+        "SCHEDULE_EXACT_ALARM",
+        "SHOW_WHEN_LOCKED",
+        "TURN_SCREEN_ON"
+      ],
+      "jsEngine": "hermes"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-asset",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/icon.png",
+          "color": "#10B981",
+          "sounds": [],
+          "mode": "production",
+          "iosDisplayInForeground": true,
+          "androidMode": "default"
+        }
+      ],
+      [
+        "expo-dev-client"
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true,
+      "tsconfigPaths": true
+    },
+    "scheme": "medicare",
+    "extra": {
+      "router": {},
+      "EXPO_PUBLIC_API_URL": "https://med-production-f99d.up.railway.app/api",
+      "eas": {
+        "projectId": "18a1d994-796f-4118-83ba-fdee71056fc3"
+      }
+    },
+    "notification": {
+      "icon": "./assets/icon.png",
+      "color": "#10B981",
+      "androidMode": "default",
+      "androidCollapsedTitle": "Rappel Médicament"
+    },
+    "owner": "safe-abd"
+  }
+}
