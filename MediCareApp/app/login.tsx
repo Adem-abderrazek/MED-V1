@@ -14,7 +14,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import VerificationModal from "../components/VerificationModal";
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import apiService from '../services/api';
+import { login } from '../services/api/common';
 
 // Theme colors for different user types
 const THEME_COLORS = {
@@ -117,7 +117,7 @@ export default function LoginScreen() {
         }
       }
       
-      const result = await apiService.login(emailOrPhone, password);
+      const result = await login(emailOrPhone, password);
 
       setIsLoading(false);
       

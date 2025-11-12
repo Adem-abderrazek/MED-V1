@@ -17,6 +17,7 @@ import DeleteConfirmationModal from '../components/DeleteConfirmationModal';
 import CustomModal from '../components/Modal';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import apiService from '../services/api';
+import { getDoctorPatients, getDoctorDashboard } from '../services/api/caregiver';
 
 const { width, height } = Dimensions.get('window');
 
@@ -37,6 +38,8 @@ interface Patient {
   }>;
   medicationCount?: number; // Total active prescriptions
   lastActivity: string;
+  firstName?: string;
+  lastName?: string;
 }
 
 interface DashboardStats {
@@ -114,20 +117,38 @@ export default function DoctorDashboardScreen() {
 
       // Fetch patients using unified endpoint
       console.log('📞 Calling getDoctorPatients API (works for both doctor and tutor)...');
-      const result = await apiService.getDoctorPatients(token);
-      
+      const result = await getDoctorPatients(token);
+
       console.log('📋 API Response:', result);
-      console.log('📋 Number of patients:', result.data?.length || 0);
-      
+      console.log('📋 Number of patients:', (result.data as any)?.length || 0);
+
       if (result.success && result.data && Array.isArray(result.data)) {
         console.log('✅ Patients loaded successfully:', result.data.length);
         console.log('📋 First patient medications:', result.data[0]?.medications);
-        setPatients(result.data);
-        
+
+        // Transform API data to match Patient interface
+        const transformedPatients = result.data.map((patient: any) => ({
+          id: patient.id,
+          name: `${patient.firstName} ${patient.lastName}`,
+          age: patient.age || 0, // Add default if not provided
+          phoneNumber: patient.phoneNumber,
+          email: patient.email,
+          createdAt: patient.createdAt || new Date(),
+          lastLogin: patient.lastLogin || patient.lastVisit,
+          adherenceRate: patient.adherenceRate || 0,
+          medications: patient.medications || [],
+          medicationCount: patient.medicationCount || 0,
+          lastActivity: patient.lastActivity || patient.lastVisit || 'N/A',
+          firstName: patient.firstName,
+          lastName: patient.lastName,
+        }));
+
+        setPatients(transformedPatients);
+
         // Update dashboard stats with patient count
         setDashboardStats(prev => ({
-          totalPatients: result.data.length,
-          recentPatients: result.data.slice(0, 5),
+          totalPatients: transformedPatients.length,
+          recentPatients: transformedPatients.slice(0, 5),
           upcomingAppointments: prev?.upcomingAppointments || [],
           medicationAlerts: prev?.medicationAlerts || [],
         }));
@@ -166,19 +187,19 @@ export default function DoctorDashboardScreen() {
 
       // Fetch dashboard data
       console.log('📊 Loading dashboard data...');
-      const result = await apiService.getDoctorDashboard(token);
-      
+      const result = await getDoctorDashboard(token);
+
       console.log('📊 Dashboard data result:', result);
-      
+
       if (result.success && result.data) {
         console.log('✅ Dashboard data loaded:', result.data);
-        
+
         // Update only alerts and appointments, keep patient count from loadPatients
         setDashboardStats(prev => ({
           totalPatients: prev?.totalPatients || 0,
           recentPatients: prev?.recentPatients || [],
-          upcomingAppointments: result.data.upcomingAppointments || [],
-          medicationAlerts: result.data.alerts?.missedMedications || result.data.medicationAlerts || [],
+          upcomingAppointments: (result.data as any).upcomingAppointments || [],
+          medicationAlerts: (result.data as any).medicationAlerts || (result.data as any).alerts?.missedMedications || [],
         }));
       } else {
         console.error('❌ Dashboard data load failed');
@@ -259,26 +280,26 @@ export default function DoctorDashboardScreen() {
 
     try {
       setIsDeleting(true);
-      
+
       const result = await apiService.deletePatient(token, patient.id);
-      
+
       if (result.success) {
         // Remove patient from local state
         setPatients(prev => prev.filter(p => p.id !== patient.id));
-        
+
         // Update dashboard stats
         setDashboardStats(prev => prev ? {
           ...prev,
           totalPatients: prev.totalPatients - 1,
           recentPatients: prev.recentPatients?.filter(p => p.id !== patient.id) || []
         } : null);
-        
+
         // Reload dashboard data to update header stats
         await loadDashboardData();
-        
+
         showCustomModal(
           'Patient supprimé',
-          `${patient.name} a été supprimé de votre liste de patients.`,
+          `${patient.firstName} ${patient.lastName} a été supprimé de votre liste de patients.`,
           'success'
         );
       } else {
@@ -595,9 +616,17 @@ export default function DoctorDashboardScreen() {
     {/* Delete Confirmation Modal */}
     <DeleteConfirmationModal
       visible={deleteModalVisible}
-      patient={selectedPatient}
+      patient={selectedPatient ? {
+        id: selectedPatient.id,
+        firstName: selectedPatient.firstName || '',
+        lastName: selectedPatient.lastName || '',
+        email: selectedPatient.email,
+        phoneNumber: selectedPatient.phoneNumber,
+        lastVisit: selectedPatient.lastLogin || undefined,
+        medicationCount: selectedPatient.medicationCount || 0,
+      } : null}
       onClose={() => setDeleteModalVisible(false)}
-      onConfirm={confirmDeletePatient}
+      onConfirm={(patient: any) => confirmDeletePatient(patient)}
       isDeleting={isDeleting}
     />
 

@@ -216,8 +216,42 @@ export default function AddPrescriptionModal({
     }
     
     if (selectedDate && editingScheduleIndex !== null) {
-      const hours = selectedDate.getHours().toString().padStart(2, '0');
-      const minutes = selectedDate.getMinutes().toString().padStart(2, '0');
+      const nativeEvent = (event as any)?.nativeEvent;
+      let selectedHours: number | undefined = typeof nativeEvent?.hour === 'number'
+        ? nativeEvent.hour
+        : undefined;
+      let selectedMinutes: number | undefined = typeof nativeEvent?.minute === 'number'
+        ? nativeEvent.minute
+        : undefined;
+
+      if (selectedHours === undefined) {
+        selectedHours = selectedDate.getHours();
+        const utcHours = selectedDate.getUTCHours();
+        const offsetHours = selectedDate.getTimezoneOffset() / 60;
+
+        if (offsetHours > 0 && Math.abs(utcHours - selectedHours) === Math.abs(offsetHours)) {
+          selectedHours = (utcHours + 24) % 24;
+        }
+      }
+
+      if (selectedMinutes === undefined) {
+        selectedMinutes = selectedDate.getMinutes();
+      }
+
+      console.log(
+        '🕒 Time picker change (Android)',
+        {
+          iso: selectedDate.toISOString(),
+          localHours: selectedDate.getHours(),
+          utcHours: selectedDate.getUTCHours(),
+          timezoneOffset: selectedDate.getTimezoneOffset(),
+          derivedHours: selectedHours,
+          derivedMinutes: selectedMinutes,
+        }
+      );
+
+      const hours = selectedHours.toString().padStart(2, '0');
+      const minutes = selectedMinutes.toString().padStart(2, '0');
       const timeString = `${hours}:${minutes}`;
       updateScheduleTime(editingScheduleIndex, timeString);
       
@@ -235,8 +269,30 @@ export default function AddPrescriptionModal({
   const confirmTimePicker = () => {
     // For iOS, ensure the time is updated from tempTime when user confirms
     if (Platform.OS === 'ios' && editingScheduleIndex !== null && tempTime) {
-      const hours = tempTime.getHours().toString().padStart(2, '0');
-      const minutes = tempTime.getMinutes().toString().padStart(2, '0');
+      let hoursValue = tempTime.getHours();
+      const utcHours = tempTime.getUTCHours();
+      const offsetHours = tempTime.getTimezoneOffset() / 60;
+
+      if (offsetHours > 0 && Math.abs(utcHours - hoursValue) === Math.abs(offsetHours)) {
+        hoursValue = (utcHours + 24) % 24;
+      }
+
+      const minutesValue = tempTime.getMinutes();
+
+      console.log(
+        '🕒 Time picker confirm (iOS)',
+        {
+          iso: tempTime.toISOString(),
+          localHours: tempTime.getHours(),
+          utcHours,
+          timezoneOffset: tempTime.getTimezoneOffset(),
+          derivedHours: hoursValue,
+          derivedMinutes: minutesValue,
+        }
+      );
+
+      const hours = hoursValue.toString().padStart(2, '0');
+      const minutes = minutesValue.toString().padStart(2, '0');
       const timeString = `${hours}:${minutes}`;
       updateScheduleTime(editingScheduleIndex, timeString);
     }

@@ -16,7 +16,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from 'react-native-safe-area-context';
 import VerificationModal from "../components/VerificationModal";
-import apiService from '../services/api';
+import { requestPasswordReset } from '../services/api/common';
 
 export default function ForgotPasswordScreen() {
   const router = useRouter();
@@ -90,7 +90,7 @@ export default function ForgotPasswordScreen() {
     
     try {
       // Call send verification code API
-      const result = await apiService.sendVerificationCode(emailOrPhone);
+      const result = await requestPasswordReset(emailOrPhone);
 
       setIsLoading(false);
       

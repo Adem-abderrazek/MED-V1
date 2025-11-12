@@ -2,107 +2,107 @@ import NetInfo from '@react-native-community/netinfo';
 
 type NetworkListener = (isOnline: boolean) => void;
 
+// Internal state
+let listeners: NetworkListener[] = [];
+let isInitialized = false;
+let currentOnlineState: boolean | null = null;
+
 /**
- * Network Monitor Service
- * Monitors network connectivity and notifies listeners of changes
+ * Initialize network monitoring (idempotent)
  */
-class NetworkMonitor {
-  private listeners: NetworkListener[] = [];
-  private isInitialized = false;
-  private currentOnlineState: boolean | null = null;
-
-  /**
-   * Initialize network monitoring
-   */
-  async init(): Promise<void> {
-    if (this.isInitialized) {
-      console.log('⚠️ NetworkMonitor already initialized');
-      return;
-    }
-
-    console.log('🌐 Initializing NetworkMonitor...');
-
-    // Subscribe to network state changes with debouncing
-    NetInfo.addEventListener(state => {
-      const isOnline = !!(state.isConnected && state.isInternetReachable);
-      
-      // Only notify if state changed and add small delay to prevent rapid changes
-      if (this.currentOnlineState !== isOnline) {
-        console.log(`🌐 Network state changed: ${isOnline ? 'ONLINE' : 'OFFLINE'}`);
-        this.currentOnlineState = isOnline;
-        
-        // Debounce network state changes to prevent rapid toggling
-        setTimeout(() => {
-          // Notify all listeners
-          this.listeners.forEach(listener => {
-            try {
-              listener(isOnline);
-            } catch (error) {
-              console.error('❌ Error in network listener:', error);
-            }
-          });
-        }, 100); // 100ms debounce
-      }
-    });
-
-    // Get initial state
-    const initialState = await NetInfo.fetch();
-    this.currentOnlineState = !!(initialState.isConnected && initialState.isInternetReachable);
-    console.log(`✅ NetworkMonitor initialized. Current state: ${this.currentOnlineState ? 'ONLINE' : 'OFFLINE'}`);
-    
-    this.isInitialized = true;
+export async function init(): Promise<void> {
+  if (isInitialized) {
+    console.log('⚠️ NetworkMonitor already initialized');
+    return;
   }
 
-  /**
-   * Check if device is currently online
-   */
-  async isOnline(): Promise<boolean> {
-    try {
-      const state = await NetInfo.fetch();
-      return !!(state.isConnected && state.isInternetReachable);
-    } catch (error) {
-      console.error('❌ Error checking online status:', error);
-      return false; // Assume offline on error
-    }
-  }
+  console.log('🌐 Initializing NetworkMonitor...');
 
-  /**
-   * Add a listener for network state changes
-   */
-  addListener(listener: NetworkListener): void {
-    this.listeners.push(listener);
-    console.log(`🎧 Network listener added. Total listeners: ${this.listeners.length}`);
-    
-    // Immediately notify with current state if known
-    if (this.currentOnlineState !== null) {
-      listener(this.currentOnlineState);
-    }
-  }
+  // Subscribe to network state changes with debouncing
+  NetInfo.addEventListener(state => {
+    const isOnline = !!(state.isConnected && state.isInternetReachable);
 
-  /**
-   * Remove a listener
-   */
-  removeListener(listener: NetworkListener): void {
-    const index = this.listeners.indexOf(listener);
-    if (index > -1) {
-      this.listeners.splice(index, 1);
-      console.log(`🔇 Network listener removed. Total listeners: ${this.listeners.length}`);
-    }
-  }
+    if (currentOnlineState !== isOnline) {
+      console.log(`🌐 Network state changed: ${isOnline ? 'ONLINE' : 'OFFLINE'}`);
+      currentOnlineState = isOnline;
 
-  /**
-   * Get current network state
-   */
-  getCurrentState(): boolean | null {
-    return this.currentOnlineState;
+      // Debounce to avoid rapid toggling
+      setTimeout(() => {
+        listeners.forEach(listener => {
+          try {
+            listener(isOnline);
+          } catch (error) {
+            console.error('❌ Error in network listener:', error);
+          }
+        });
+      }, 100);
+    }
+  });
+
+  // Get initial state
+  const initialState = await NetInfo.fetch();
+  currentOnlineState = !!(initialState.isConnected && initialState.isInternetReachable);
+  console.log(`✅ NetworkMonitor initialized. Current state: ${currentOnlineState ? 'ONLINE' : 'OFFLINE'}`);
+
+  isInitialized = true;
+}
+
+/**
+ * Check if device is currently online (fresh fetch)
+ */
+export async function isOnline(): Promise<boolean> {
+  try {
+    const state = await NetInfo.fetch();
+    return !!(state.isConnected && state.isInternetReachable);
+  } catch (error) {
+    console.error('❌ Error checking online status:', error);
+    return false;
   }
 }
 
-// Export singleton instance
-export const networkMonitor = new NetworkMonitor();
+/**
+ * Add a listener for network state changes
+ */
+export function addListener(listener: NetworkListener): void {
+  listeners.push(listener);
+  console.log(`🎧 Network listener added. Total listeners: ${listeners.length}`);
+
+  // Immediately notify with current state if known
+  if (currentOnlineState !== null) {
+    listener(currentOnlineState);
+  }
+}
+
+/**
+ * Remove a listener
+ */
+export function removeListener(listener: NetworkListener): void {
+  const index = listeners.indexOf(listener);
+  if (index > -1) {
+    listeners.splice(index, 1);
+    console.log(`🔇 Network listener removed. Total listeners: ${listeners.length}`);
+  }
+}
+
+/**
+ * Get last known network state (null if not initialized)
+ */
+export function getCurrentState(): boolean | null {
+  return currentOnlineState;
+}
+
+/**
+ * Temporary compatibility export so existing code using
+ * `networkMonitor.init()` style continues to work.
+ * You can later import functions directly:
+ *   import { init, isOnline, addListener, removeListener, getCurrentState } from './networkMonitor';
+ */
+export const networkMonitor = {
+  init,
+  isOnline,
+  addListener,
+  removeListener,
+  getCurrentState,
+};
+
 export default networkMonitor;
-
-
-
-
-

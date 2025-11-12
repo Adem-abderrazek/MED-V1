@@ -16,7 +16,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from 'react-native-safe-area-context';
 import VerificationModal from "../components/VerificationModal";
-import apiService from '../services/api';
+import { verifyResetCode, requestPasswordReset } from '../services/api/common';
 
 export default function VerifyCodeScreen() {
   const router = useRouter();
@@ -113,7 +113,7 @@ export default function VerifyCodeScreen() {
     try {
       console.log('📤 Calling verifyCode API...');
       // Call verification API
-      const result = await apiService.verifyCode(emailOrPhone, codeToVerify);
+      const result = await verifyResetCode(emailOrPhone, codeToVerify);
       console.log('📥 Verification result:', result);
       
       setIsLoading(false);
@@ -153,7 +153,7 @@ export default function VerifyCodeScreen() {
 
     try {
       // Call resend code API
-      const result = await apiService.sendVerificationCode(emailOrPhone);
+      const result = await requestPasswordReset(emailOrPhone);
 
       if (result.success) {
         showModal("success", "Code renvoyé!", "Un nouveau code de vérification a été envoyé.");

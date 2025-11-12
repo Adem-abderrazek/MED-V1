@@ -13,7 +13,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import apiService from '../services/api';
+import { sendPatientInvitation } from '../services/api/caregiver';
 import CustomModal from '../components/Modal';
 
 const { width } = Dimensions.get('window');
@@ -146,7 +146,7 @@ export default function AddPatientScreen() {
       console.log('📝 Invitation data:', JSON.stringify(invitationData, null, 2));
       console.log('🌐 Calling API: sendPatientInvitation...');
       
-      const result = await apiService.sendPatientInvitation(token, invitationData) as PatientInvitationResponse;
+      const result = await sendPatientInvitation(token, invitationData) as PatientInvitationResponse;
       
       console.log('───────────────────────────────────────────────────');
       console.log('📥 INVITATION RESULT');

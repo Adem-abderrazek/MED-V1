@@ -14,7 +14,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter, Stack } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import apiService from '../services/api';
+import { getUserProfile, updateUserProfile } from '../services/api/common';
 import FeedbackModal from '../components/FeedbackModal';
 
 interface ProfileFormData {
@@ -49,13 +49,13 @@ export default function EditProfileScreen() {
 
       if (storedToken) {
         try {
-          const result = await apiService.getUserProfile(storedToken);
+          const result = await getUserProfile(storedToken);
           if (result.success && result.data) {
             setFormData({
-              firstName: result.data.firstName || '',
-              lastName: result.data.lastName || '',
-              email: result.data.email || '',
-              phoneNumber: result.data.phoneNumber || '',
+              firstName: (result.data as any).firstName || '',
+              lastName: (result.data as any).lastName || '',
+              email: (result.data as any).email || '',
+              phoneNumber: (result.data as any).phoneNumber || '',
             });
           }
         } catch (error) {
@@ -104,7 +104,7 @@ export default function EditProfileScreen() {
         phone: formData.phoneNumber,
       };
       
-      const result = await apiService.updateUserProfile(token, updateData);
+      const result = await updateUserProfile(token, updateData);
       console.log('📥 Update result:', result);
 
       if (result.success) {

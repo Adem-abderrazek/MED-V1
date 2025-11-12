@@ -16,7 +16,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import VerificationModal from "../components/VerificationModal";
 import RolePicker from "../components/RolePicker";
 import DatePicker from "../components/DatePicker";
-import apiService from '../services/api';
+import { register } from '../services/api/common';
 
 export default function RegisterScreen() {
   const router = useRouter();
@@ -127,7 +127,7 @@ export default function RegisterScreen() {
     
     try {
       // Call real API
-      const result = await apiService.register({
+      const result = await register({
         firstName,
         lastName,
         phoneNumber,

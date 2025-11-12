@@ -14,10 +14,9 @@ import {
 } from "react-native";
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import apiService from '../services/api';
+import { getPatientMedicationsByDate, confirmMedicationTaken } from '../services/api/patient';
+import { registerPushToken } from '../services/api/common';
 import CustomModal from '../components/Modal';
-import MedicationReminderModal from '../components/MedicationReminderModal';
-import { useNotification } from './_layout';
 import { notificationService } from '../services/notificationService';
 
 const { width } = Dimensions.get('window');
@@ -92,9 +91,6 @@ export default function PatientDashboardScreen() {
     type: 'info' as 'success' | 'error' | 'warning' | 'info',
   });
 
-  // Medication reminder modal from global context
-  const { currentReminder, setCurrentReminder, showReminderModal, setShowReminderModal, localVoicePath } = useNotification();
-
   // Generate 14 days (7 past + today + 6 future)
   const datesList = useMemo(() => {
     const dates: DateItem[] = [];
@@ -145,7 +141,7 @@ export default function PatientDashboardScreen() {
       if (pushToken) {
         try {
           console.log('📱 Registering push token with backend...');
-          await apiService.registerPushToken(storedToken, pushToken);
+          await registerPushToken(storedToken, pushToken);
           console.log('✅ Push token registered successfully');
         } catch (error) {
           console.error('❌ Failed to register push token:', error);
@@ -161,7 +157,7 @@ export default function PatientDashboardScreen() {
       console.log('📅 Loading medications for date:', dateStr, '(local timezone)');
       
       // Call API to get medications for specific date
-      const result = await apiService.getPatientMedicationsByDate(storedToken, dateStr);
+      const result = await getPatientMedicationsByDate(storedToken, dateStr);
       
       if (result.success && result.data) {
         const data = result.data as any;
@@ -198,12 +194,12 @@ export default function PatientDashboardScreen() {
         // Only show modal if not silent (manual sync)
         if (!silent) {
           showModal(
-            'Synchronisation réussie', 
-            `${result.remindersCount} rappels synchronisés avec ${result.voicesDownloaded} messages vocaux`,
+            'Synchronisation réussie',
+            `${result.scheduled} rappels synchronisés`,
             'success'
           );
         } else {
-          console.log(`✅ Silent sync complete: ${result.remindersCount} reminders, ${result.voicesDownloaded} voices`);
+          console.log(`✅ Silent sync complete: ${result.scheduled} reminders`);
         }
         
         // Update last sync time
@@ -212,7 +208,7 @@ export default function PatientDashboardScreen() {
         setHasUpdates(false);
       } else {
         if (!silent) {
-          showModal('Erreur de synchronisation', result.message, 'error');
+          showModal('Erreur de synchronisation', 'Une erreur est survenue lors de la synchronisation', 'error');
         }
       }
     } catch (error) {
@@ -347,7 +343,7 @@ export default function PatientDashboardScreen() {
     if (!token) return;
 
     try {
-      const result = await apiService.markMedicationTaken(token, reminderId);
+      const result = await confirmMedicationTaken(token, [reminderId]);
       
       if (result.success) {
         showModal('Succès', 'Médicament marqué comme pris!', 'success');
@@ -367,106 +363,6 @@ export default function PatientDashboardScreen() {
       }
     }
   }, [token, selectedDate]);
-
-  // Handle medication confirmation from reminder modal
-  const handleConfirmMedication = useCallback(async (reminderIds: string[]) => {
-    if (!token) {
-      showModal('Erreur', 'Session expirée', 'error');
-      return;
-    }
-
-    // Check if this is a test reminder (fake ID)
-    if (reminderIds.includes('test-local-123')) {
-      console.log('🧪 Test confirmation - skipping API call');
-      showModal('Succès', '✅ TEST: Médicament confirmé! (Simulation uniquement)', 'success');
-      return;
-    }
-
-    try {
-      console.log('✅ Confirming medication(s):', reminderIds);
-      
-      // Check online status
-      const { networkMonitor } = await import('../services/networkMonitor');
-      const isOnline = await networkMonitor.isOnline();
-      
-      if (isOnline) {
-        // Online: Try API first
-        try {
-          const result = await apiService.confirmMedicationTaken(token, reminderIds);
-          
-          if (result.success) {
-            showModal('Succès', '✅ Médicament(s) confirmé(s)!', 'success');
-            await loadMedicationsForDate(selectedDate);
-          } else {
-            showModal('Erreur', result.message || 'Impossible de confirmer', 'error');
-          }
-        } catch (apiError) {
-          console.error('API error, falling back to offline:', apiError);
-          // Fallback to offline
-          const { default: localReminderService } = await import('../services/localReminderService');
-          await localReminderService.confirmReminderLocally(reminderIds[0]);
-          showModal('Info', '✅ Confirmé hors ligne. Sera synchronisé automatiquement.', 'info');
-        }
-      } else {
-        // Offline: Use local queue
-        const { default: localReminderService } = await import('../services/localReminderService');
-        await localReminderService.confirmReminderLocally(reminderIds[0]);
-        showModal('Info', '✅ Confirmé hors ligne. Sera synchronisé quand la connexion reviendra.', 'info');
-      }
-    } catch (error: any) {
-      console.error('Error confirming medication:', error);
-      showModal('Erreur', 'Une erreur est survenue', 'error');
-    }
-  }, [token, selectedDate]);
-
-  // Handle medication snooze from reminder modal
-  const handleSnoozeMedication = useCallback(async (reminderIds: string[]) => {
-    if (!token) {
-      showModal('Erreur', 'Session expirée', 'error');
-      return;
-    }
-
-    // Check if this is a test reminder (fake ID)
-    if (reminderIds.includes('test-local-123')) {
-      console.log('🧪 Test snooze - skipping API call');
-      showModal('Info', '⏰ TEST: Rappel programmé dans 10 minutes! (Simulation uniquement)', 'info');
-      return;
-    }
-
-    try {
-      console.log('⏰ Snoozing medication(s):', reminderIds);
-      
-      // Always use local snooze (works offline and online)
-      const { default: localReminderService } = await import('../services/localReminderService');
-      await localReminderService.snoozeReminderLocally(reminderIds[0]);
-      
-      // Check if online to show appropriate message
-      const { networkMonitor } = await import('../services/networkMonitor');
-      const isOnline = await networkMonitor.isOnline();
-      
-      if (isOnline) {
-        showModal('Info', '⏰ Rappel programmé dans 10 minutes', 'info');
-      } else {
-        showModal('Info', '⏰ Rappel programmé dans 10 minutes (hors ligne)', 'info');
-      }
-    } catch (error: any) {
-      console.error('Error snoozing medication:', error);
-      
-      // Fallback to API call if local snooze failed
-      try {
-        const result = await apiService.snoozeMedicationReminder(token, reminderIds);
-        
-        if (result.success) {
-          showModal('Info', '⏰ Rappel programmé dans 10 minutes', 'info');
-        } else {
-          showModal('Erreur', result.message || 'Impossible de programmer le rappel', 'error');
-        }
-      } catch (fallbackError) {
-        console.error('Error in fallback snooze:', fallbackError);
-        showModal('Erreur', 'Une erreur est survenue', 'error');
-      }
-    }
-  }, [token]);
 
   const handleLogout = async () => {
     try {
@@ -877,15 +773,6 @@ export default function PatientDashboardScreen() {
         onClose={() => setModalVisible(false)}
       />
 
-      {/* Medication Reminder Modal */}
-      <MedicationReminderModal
-        visible={showReminderModal}
-        data={currentReminder}
-        onConfirm={handleConfirmMedication}
-        onSnooze={handleSnoozeMedication}
-        onClose={() => setShowReminderModal(false)}
-        localVoicePath={localVoicePath}
-      />
     </SafeAreaView>
   );
 }

@@ -13,7 +13,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter, Stack, useFocusEffect } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import apiService from '../services/api';
+import { getUserProfile, updateUserProfile } from '../services/api/common';
 import FeedbackModal from '../components/FeedbackModal';
 
 interface UserProfile {
@@ -52,7 +52,7 @@ export default function DoctorProfileScreen() {
 
     try {
       // Update notifications setting in backend
-      const result = await apiService.updateUserProfile(token, {
+      const result = await updateUserProfile(token, {
         notificationsEnabled: value,
       } as any);
       console.log('✅ Notification preference updated');
@@ -92,10 +92,10 @@ export default function DoctorProfileScreen() {
 
     try {
       setIsLoading(true);
-      const result = await apiService.getUserProfile(token);
+      const result = await getUserProfile(token);
       
       if (result.success && result.data) {
-        setProfile(result.data);
+        setProfile(result.data as UserProfile);
       }
     } catch (error) {
       console.error('Error loading profile:', error);
