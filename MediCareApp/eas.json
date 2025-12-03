@@ -27,7 +27,7 @@
           "buildType": "apk"
         },
         "env": {
-          "EXPO_PUBLIC_API_URL": "https://med-production-f99d.up.railway.app/api"
+          "EXPO_PUBLIC_API_URL": "https://medicare-api-lxyw.onrender.com/api"
         }
       },
       "production": {
@@ -40,7 +40,7 @@
           "buildType": "apk"
         },
         "env": {
-          "EXPO_PUBLIC_API_URL": "https://med-production-f99d.up.railway.app/api"
+          "EXPO_PUBLIC_API_URL": "https://medicare-api-lxyw.onrender.com/api"
         }
       }
     },

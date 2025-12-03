@@ -313,11 +313,11 @@ export class PatientService {
         const minutes = timeUntilAllowedMinutes % 60;
         
         const timeDisplay = hours > 0 ? `${hours}h ${minutes}min` : `${minutes}min`;
-        throw new Error(`Vous ne pouvez pas marquer ce médicament comme pris avant ${timeDisplay} de l'heure prévue (${scheduledTime.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}).`);
+        throw new Error(`Vous ne pouvez pas marquer ce médicament comme pris avant ${timeDisplay} de l'heure prévue (${scheduledTime.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', timeZone: 'Africa/Tunis' })}).`);
       }
 
       // Check if medication was already taken
-      if (reminder.status === 'manual_confirm' || reminder.status === 'taken') {
+      if (reminder.status === 'manual_confirm' || reminder.status === 'confirmed') {
         throw new Error('Ce médicament a déjà été marqué comme pris.');
       }
 

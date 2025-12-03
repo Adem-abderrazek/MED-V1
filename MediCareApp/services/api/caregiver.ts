@@ -1,7 +1,7 @@
 import { request } from './common';
 
 export async function getPatientDetails(token: string, patientId: string) {
-  return request(`/tutor/patients/${patientId}/details`, {
+  return request(`/tutor/patients/${patientId}/profile`, {
     method: 'GET',
     headers: { 'Authorization': `Bearer ${token}` },
   });

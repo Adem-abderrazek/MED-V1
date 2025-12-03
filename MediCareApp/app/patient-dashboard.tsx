@@ -186,22 +186,26 @@ export default function PatientDashboardScreen() {
     try {
       setIsSyncing(true);
       console.log('🔄 Starting reminder sync...');
-      
+
       const { default: localReminderService } = await import('../services/localReminderService');
       const result = await localReminderService.downloadAndScheduleReminders(token);
-      
+
       if (result.success) {
         // Only show modal if not silent (manual sync)
         if (!silent) {
+          // Show audio download count if any were downloaded
+          const audioInfo = result.audioDownloaded > 0
+            ? `\n🎤 ${result.audioDownloaded} messages vocaux téléchargés`
+            : '';
           showModal(
             'Synchronisation réussie',
-            `${result.scheduled} rappels synchronisés`,
+            `${result.scheduled} rappels synchronisés${audioInfo}`,
             'success'
           );
         } else {
-          console.log(`✅ Silent sync complete: ${result.scheduled} reminders`);
+          console.log(`✅ Silent sync complete: ${result.scheduled} reminders, ${result.audioDownloaded} audio files`);
         }
-        
+
         // Update last sync time
         const syncTime = await localReminderService.getLastSyncTime();
         setLastSyncTime(syncTime);
@@ -638,15 +642,15 @@ export default function PatientDashboardScreen() {
                 )}
               </View>
               <View style={styles.headerButtons}>
-                <TouchableOpacity 
-                  style={[styles.syncButton, hasUpdates && styles.syncButtonWithBadge]} 
+                <TouchableOpacity
+                  style={[styles.syncButton, hasUpdates && styles.syncButtonWithBadge]}
                   onPress={() => syncReminders(false)}
                   disabled={isSyncing}
                 >
-                  <Ionicons 
-                    name={isSyncing ? "sync" : "cloud-download-outline"} 
-                    size={24} 
-                    color="white" 
+                  <Ionicons
+                    name={isSyncing ? "sync" : "cloud-download-outline"}
+                    size={24}
+                    color="white"
                   />
                   {hasUpdates && <View style={styles.updateBadge} />}
                   {pendingSyncCount > 0 && (

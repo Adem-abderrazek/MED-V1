@@ -3,6 +3,13 @@ import * as Device from "expo-device";
 import { Platform } from "react-native";
 import Constants from "expo-constants";
 
+// ============================================
+// CRITICAL ALERTS CONFIGURATION (iOS)
+// Set to true when Apple approves the entitlement
+// Request form: https://developer.apple.com/contact/request/notifications-critical-alerts-entitlement
+// ============================================
+export const CRITICAL_ALERTS_ENABLED = false;
+
 // Configure notification behavior for iOS and Android
 Notifications.setNotificationHandler({
   handleNotification: async (notification) => {
@@ -90,7 +97,7 @@ export class NotificationService {
             allowBadge: true,
             allowSound: true,
             allowDisplayInCarPlay: false,
-            allowCriticalAlerts: false, // Requires special entitlement
+            allowCriticalAlerts: CRITICAL_ALERTS_ENABLED, // Requires Apple approval - flip to true when approved
             provideAppNotificationSettings: false,
             allowProvisional: false,
           },

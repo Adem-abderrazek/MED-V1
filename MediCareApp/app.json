@@ -16,7 +16,7 @@
     ],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.safeabd.medicarealarm",
+      "bundleIdentifier": "com.ademabderrazek.medicare",
       "buildNumber": "2",
       "infoPlist": {
         "UIBackgroundModes": [
@@ -26,6 +26,7 @@
         "NSUserNotificationsUsageDescription": "We need permission to send you medication reminders.",
         "NSMicrophoneUsageDescription": "We need access to the microphone to record voice messages for medication reminders."
       },
+
       "config": {
         "usesNonExemptEncryption": false
       },
@@ -83,7 +84,7 @@
       "router": {},
       "EXPO_PUBLIC_API_URL": "https://med-production-f99d.up.railway.app/api",
       "eas": {
-        "projectId": "18a1d994-796f-4118-83ba-fdee71056fc3"
+        "projectId": "2a10430e-36a9-48a9-826b-509346ede0ab"
       }
     },
     "notification": {
@@ -92,6 +93,6 @@
       "androidMode": "default",
       "androidCollapsedTitle": "Rappel Médicament"
     },
-    "owner": "safe-abd"
+    "owner": "adem_abderrazek"
   }
 }

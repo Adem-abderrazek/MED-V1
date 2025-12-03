@@ -1,15 +1,64 @@
-import { Stack } from 'expo-router';
+import { Stack, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import React, { useEffect } from 'react';
-import { AppState, AppStateStatus, Linking } from 'react-native';
+import { AppState, AppStateStatus, Linking, Platform } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import notifee, { EventType } from '@notifee/react-native';
 import { notificationService } from '../services/notificationService';
 import { networkMonitor } from '../services/networkMonitor';
 import localReminderService from '../services/localReminderService';
+import notifeeAlarmService from '../services/notifeeAlarmService';
+import * as apiService from '../services/api/patient';
+
+// Register background event handler for notifee (handles events when app is killed/background)
+notifee.onBackgroundEvent(async ({ type, detail }) => {
+  const { notification, pressAction } = detail;
+
+  if (!notification?.data?.reminderId) return;
+
+  const reminderId = notification.data.reminderId as string;
+
+  console.log('🔔 Notifee background event:', EventType[type], pressAction?.id);
+
+  // Handle action button presses in background
+  if (type === EventType.ACTION_PRESS && pressAction) {
+    if (pressAction.id === 'confirm') {
+      console.log('✅ Background confirm action');
+      try {
+        await localReminderService.confirmReminderLocally(reminderId);
+        const token = await AsyncStorage.getItem('userToken');
+        if (token) {
+          await apiService.confirmMedicationTaken(token, [reminderId]);
+        }
+        await notifee.cancelNotification(notification.id!);
+      } catch (error) {
+        console.error('Error confirming medication in background:', error);
+      }
+    } else if (pressAction.id === 'snooze') {
+      console.log('⏰ Background snooze action');
+      try {
+        await localReminderService.snoozeReminderLocally(reminderId);
+        await notifee.cancelNotification(notification.id!);
+      } catch (error) {
+        console.error('Error snoozing in background:', error);
+      }
+    }
+  }
+});
 
 export default function RootLayout() {
+  const router = useRouter();
+
   useEffect(() => {
     console.log('🚀 Initializing notification and network systems...');
+
+    // Initialize notifee alarm service for Android
+    if (Platform.OS === 'android') {
+      notifeeAlarmService.initialize().catch(err => {
+        console.error('❌ Error initializing notifee alarm service:', err);
+      });
+    }
 
     // Initialize network monitoring
     networkMonitor.init().catch(err => {
@@ -35,6 +84,65 @@ export default function RootLayout() {
 
     initNotifications();
 
+    // Handle notifee events (for Android full-screen alarms)
+    const handleNotifeeEvent = async ({ type, detail }: { type: EventType; detail: any }) => {
+      const { notification, pressAction } = detail;
+
+      if (!notification?.data?.reminderId) return;
+
+      const reminderId = notification.data.reminderId as string;
+      const medicationName = notification.data.medicationName as string;
+      const dosage = notification.data.dosage as string;
+
+      console.log('🔔 Notifee event:', EventType[type], pressAction?.id);
+
+      // Handle full-screen action - navigate to alarm screen
+      if (type === EventType.DELIVERED || type === EventType.PRESS) {
+        if (notification.data.type === 'medication_alarm') {
+          console.log('💊 Navigating to medication alarm screen');
+          router.push({
+            pathname: '/medication-alarm',
+            params: {
+              medicationName,
+              dosage,
+              instructions: notification.data.instructions || '',
+              reminderId,
+              patientId: notification.data.patientId || '',
+              audioPath: notification.data.audioPath || '',
+            }
+          });
+        }
+      }
+
+      // Handle action button presses
+      if (type === EventType.ACTION_PRESS && pressAction) {
+        if (pressAction.id === 'confirm') {
+          console.log('✅ Confirm action pressed');
+          try {
+            await localReminderService.confirmReminderLocally(reminderId);
+            const token = await AsyncStorage.getItem('userToken');
+            if (token) {
+              await apiService.confirmMedicationTaken(token, [reminderId]);
+            }
+            await notifee.cancelNotification(notification.id);
+          } catch (error) {
+            console.error('Error confirming medication:', error);
+          }
+        } else if (pressAction.id === 'snooze') {
+          console.log('⏰ Snooze action pressed');
+          try {
+            await localReminderService.snoozeReminderLocally(reminderId);
+            await notifee.cancelNotification(notification.id);
+          } catch (error) {
+            console.error('Error snoozing reminder:', error);
+          }
+        }
+      }
+    };
+
+    // Subscribe to notifee foreground events
+    const notifeeUnsubscribe = notifee.onForegroundEvent(handleNotifeeEvent);
+
     // Handle notification received while app is in foreground
     const notificationReceivedListener = notificationService.addNotificationReceivedListener(
       async (notification) => {
@@ -42,7 +150,19 @@ export default function RootLayout() {
 
         const medicationData = notificationService.parseMedicationNotification(notification);
         if (medicationData) {
-          console.log('💊 Medication reminder detected:', medicationData);
+          console.log('💊 Medication reminder detected, navigating to alarm screen:', medicationData);
+
+          // Navigate to medication alarm screen with medication data
+          router.push({
+            pathname: '/medication-alarm',
+            params: {
+              medicationName: medicationData.medicationName,
+              dosage: medicationData.dosage,
+              instructions: medicationData.instructions || '',
+              reminderId: medicationData.reminderId,
+              patientId: medicationData.patientId || '',
+            }
+          });
         }
       }
     );
@@ -101,9 +221,21 @@ export default function RootLayout() {
           return;
         }
 
+        // User tapped on the notification body - navigate to alarm screen
         const medicationData = notificationService.parseMedicationNotification(notification);
         if (medicationData) {
-          console.log('ℹ️ Notification tapped by user:', medicationData);
+          console.log('ℹ️ Notification tapped by user, navigating to alarm screen:', medicationData);
+
+          router.push({
+            pathname: '/medication-alarm',
+            params: {
+              medicationName: medicationData.medicationName,
+              dosage: medicationData.dosage,
+              instructions: medicationData.instructions || '',
+              reminderId: medicationData.reminderId,
+              patientId: medicationData.patientId || '',
+            }
+          });
         }
       }
     );
@@ -145,9 +277,10 @@ export default function RootLayout() {
       notificationResponseListener.remove();
       appStateSubscription.remove();
       linkingSubscription.remove();
+      notifeeUnsubscribe();
       notificationService.cleanup();
     };
-  }, []);
+  }, [router]);
 
   return (
     <SafeAreaProvider>
@@ -176,6 +309,16 @@ export default function RootLayout() {
         <Stack.Screen name="edit-profile" options={{ headerShown: false }} />
         <Stack.Screen name="terms" options={{ headerShown: false }} />
         <Stack.Screen name="privacy-policy" options={{ headerShown: false }} />
+
+        {/* Alarm Screen - Full screen, no gestures */}
+        <Stack.Screen
+          name="medication-alarm"
+          options={{
+            headerShown: false,
+            gestureEnabled: false,
+            animation: 'fade',
+          }}
+        />
       </Stack>
 
       <StatusBar style="dark" translucent={false} backgroundColor="#FFFFFF" />

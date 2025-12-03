@@ -41,6 +41,13 @@ router.get('/patients/:patientId/profile', (req, res) => tutorController.getPati
 // Get a patient's adherence history
 router.get('/patients/:patientId/adherence-history', (req, res) => tutorController.getPatientAdherenceHistory(req as AuthenticatedRequest, res));
 
+// Get voice messages for a specific patient
+router.get('/patients/:patientId/voice-messages', (req, res) => {
+  // Pass patientId from URL params to query for the existing controller method
+  (req.query as any).patientId = req.params.patientId;
+  return tutorController.getVoiceMessages(req as AuthenticatedRequest, res);
+});
+
 // Create a prescription for a patient (tutor acting similar to doctor)
 router.post('/patients/:patientId/prescriptions', (req, res) => {
   // Ensure body has patientId for service; merge from params if missing

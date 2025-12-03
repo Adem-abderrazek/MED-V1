@@ -323,6 +323,97 @@ class PatientController {
       });
     }
   }
+
+  /**
+   * Confirm a medication reminder (mark as taken)
+   */
+  async confirmReminder(req: AuthenticatedRequest, res: Response) {
+    try {
+      const patientId = req.user.userId;
+      const { reminderIds } = req.body;
+
+      if (!reminderIds || !Array.isArray(reminderIds) || reminderIds.length === 0) {
+        return res.status(400).json({
+          success: false,
+          message: 'Reminder IDs array is required'
+        });
+      }
+
+      console.log(`📍 Confirming reminders for patient ${patientId}:`, reminderIds);
+
+      // Confirm each reminder
+      const results = [];
+      for (const reminderId of reminderIds) {
+        try {
+          await patientService.markMedicationTaken(patientId, reminderId);
+          results.push({ reminderId, success: true });
+        } catch (error: any) {
+          console.error(`Error confirming reminder ${reminderId}:`, error.message);
+          results.push({ reminderId, success: false, error: error.message });
+        }
+      }
+
+      res.json({
+        success: true,
+        data: results,
+        message: `Processed ${results.length} reminders`
+      });
+    } catch (error: any) {
+      console.error('Error in confirmReminder controller:', error);
+      res.status(500).json({
+        success: false,
+        message: error?.message || 'Failed to confirm reminders'
+      });
+    }
+  }
+
+  /**
+   * Snooze a medication reminder
+   */
+  async snoozeReminder(req: AuthenticatedRequest, res: Response) {
+    try {
+      const patientId = req.user.userId;
+      const { reminderId, snoozeDurationMinutes = 5 } = req.body;
+
+      if (!reminderId) {
+        return res.status(400).json({
+          success: false,
+          message: 'Reminder ID is required'
+        });
+      }
+
+      console.log(`⏰ Snoozing reminder ${reminderId} for ${snoozeDurationMinutes} minutes`);
+
+      // Calculate new snooze time
+      const snoozedUntil = new Date(Date.now() + snoozeDurationMinutes * 60 * 1000);
+
+      // Update the reminder with snooze info
+      const { PrismaClient } = await import('@prisma/client');
+      const prisma = new PrismaClient();
+
+      await prisma.medicationReminder.update({
+        where: { id: reminderId },
+        data: {
+          status: 'scheduled',
+          snoozedUntil: snoozedUntil
+        }
+      });
+
+      await prisma.$disconnect();
+
+      res.json({
+        success: true,
+        data: { reminderId, snoozedUntil: snoozedUntil.toISOString() },
+        message: `Reminder snoozed until ${snoozedUntil.toLocaleTimeString()}`
+      });
+    } catch (error: any) {
+      console.error('Error in snoozeReminder controller:', error);
+      res.status(500).json({
+        success: false,
+        message: error?.message || 'Failed to snooze reminder'
+      });
+    }
+  }
 }
 
 export default new PatientController();

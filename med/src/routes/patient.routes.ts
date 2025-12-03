@@ -19,6 +19,8 @@ router.get('/medications/next', (req, res) => patientController.getNextMedicatio
 
 // Offline sync endpoints
 router.get('/reminders/upcoming', (req, res) => patientController.getUpcomingReminders(req as AuthenticatedRequest, res));
+router.post('/reminders/confirm', (req, res) => patientController.confirmReminder(req as AuthenticatedRequest, res));
+router.post('/reminders/snooze', (req, res) => patientController.snoozeReminder(req as AuthenticatedRequest, res));
 router.get('/check-updates', (req, res) => patientController.checkForUpdates(req as AuthenticatedRequest, res));
 
 // Message endpoints
