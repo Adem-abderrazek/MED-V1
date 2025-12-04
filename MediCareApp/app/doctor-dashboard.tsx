@@ -302,6 +302,8 @@ export default function DoctorDashboardScreen() {
           recentPatients: prev.recentPatients?.filter(p => p.id !== patient.id) || []
         } : null);
 
+        // Reload patients to ensure deleted patient doesn't reappear
+        await loadPatients();
         // Reload dashboard data to update header stats
         await loadDashboardData();
 

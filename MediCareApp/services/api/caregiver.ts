@@ -15,7 +15,10 @@ export async function getDoctorPatientMedications(token: string, patientId: stri
 }
 
 export async function deletePatient(token: string, patientId: string) {
-  return request(`/tutor/patients/${patientId}`, {
+  // Use /medecin/patients endpoint for doctors, /tutor/patients for tutors
+  // Both endpoints work the same way (deactivate relationship)
+  // The backend routes handle both medecin and tuteur user types
+  return request(`/medecin/patients/${patientId}`, {
     method: 'DELETE',
     headers: { 'Authorization': `Bearer ${token}` },
   });
