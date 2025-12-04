@@ -36,6 +36,8 @@ const apiService = {
   deleteVoiceMessage: caregiver.deleteVoiceMessage,
   getPatientAdherenceHistory: caregiver.getPatientAdherenceHistory,
   sendPatientInvitation: caregiver.sendPatientInvitation,
+  getDoctorPatients: caregiver.getDoctorPatients,
+  getDoctorDashboard: caregiver.getDoctorDashboard,
 
   // patient
   getPatientMedicationsByDate: patient.getPatientMedicationsByDate,

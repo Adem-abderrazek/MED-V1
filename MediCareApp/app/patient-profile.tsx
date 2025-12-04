@@ -20,6 +20,7 @@ import FeedbackModal from '../components/FeedbackModal';
 import VoiceRecorderModal from '../components/VoiceRecorderModal';
 import { useAudioPlayer, setAudioModeAsync } from 'expo-audio';
 import * as FileSystem from 'expo-file-system/legacy';
+import { formatTime, formatDate, formatDateTime } from '../utils/timeFormatting';
 
 const { width } = Dimensions.get('window');
 
@@ -666,7 +667,7 @@ export default function PatientProfileScreen() {
                     <View style={styles.contactDetails}>
                       <Text style={styles.contactLabel}>Dernière visite</Text>
                       <Text style={styles.contactValue}>
-                        {new Date(patient.lastVisit).toLocaleDateString('fr-FR')}
+                        {formatDate(patient.lastVisit)}
                       </Text>
                     </View>
                   </View>
@@ -913,11 +914,7 @@ export default function PatientProfileScreen() {
                                 {item.medicationName}
                               </Text>
                               <Text style={styles.historyDate}>
-                                {new Date(item.scheduledFor).toLocaleTimeString('fr-FR', {
-                                  hour: '2-digit',
-                                  minute: '2-digit',
-                                  hour12: false
-                                })}
+                                {formatTime(item.scheduledFor)}
                               </Text>
                             </View>
                           </View>
@@ -1001,13 +998,7 @@ export default function PatientProfileScreen() {
                             </Text>
                           )}
                           <Text style={styles.voiceMessageDate}>
-                            {new Date(message.createdAt).toLocaleDateString('fr-FR', {
-                              day: 'numeric',
-                              month: 'long',
-                              year: 'numeric',
-                              hour: '2-digit',
-                              minute: '2-digit',
-                            })}
+                            {formatDateTime(message.createdAt)}
                           </Text>
                           <Text style={styles.voiceMessageDuration}>
                             Durée: {message.durationSeconds 

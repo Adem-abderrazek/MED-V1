@@ -18,6 +18,7 @@ import { getPatientMedicationsByDate, confirmMedicationTaken } from '../services
 import { registerPushToken } from '../services/api/common';
 import CustomModal from '../components/Modal';
 import { notificationService } from '../services/notificationService';
+import { formatTime } from '../utils/timeFormatting';
 
 const { width } = Dimensions.get('window');
 
@@ -393,17 +394,7 @@ export default function PatientDashboardScreen() {
     }
   };
 
-  const formatTime = (dateString: string) => {
-    // Backend stores time in UTC, we need to display local time correctly
-    const date = new Date(dateString);
-    
-    // Use toLocaleTimeString to get proper local time formatting
-    return date.toLocaleTimeString('fr-FR', {
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: false
-    });
-  };
+  // formatTime is now imported from utils/timeFormatting for consistency
 
   const isToday = (date: Date) => {
     const today = new Date();
@@ -717,7 +708,8 @@ export default function PatientDashboardScreen() {
                 day: '2-digit',
                 month: 'short',
                 hour: '2-digit',
-                minute: '2-digit'
+                minute: '2-digit',
+                timeZone: 'Africa/Tunis'
               })}
             </Text>
           </View>

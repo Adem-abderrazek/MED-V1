@@ -18,6 +18,7 @@ import CustomModal from '../components/Modal';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import apiService from '../services/api';
 import { getDoctorPatients, getDoctorDashboard } from '../services/api/caregiver';
+import { formatTime } from '../utils/timeFormatting';
 
 const { width, height } = Dimensions.get('window');
 
@@ -127,6 +128,8 @@ export default function DoctorDashboardScreen() {
         console.log('📋 First patient medications:', result.data[0]?.medications);
 
         // Transform API data to match Patient interface
+        // IMPORTANT: Format nextDue times consistently using the shared utility
+        // Backend now sends UTC ISO strings, so we format them with Tunisia timezone
         const transformedPatients = result.data.map((patient: any) => ({
           id: patient.id,
           name: `${patient.firstName} ${patient.lastName}`,
@@ -136,7 +139,12 @@ export default function DoctorDashboardScreen() {
           createdAt: patient.createdAt || new Date(),
           lastLogin: patient.lastLogin || patient.lastVisit,
           adherenceRate: patient.adherenceRate || 0,
-          medications: patient.medications || [],
+          medications: (patient.medications || []).map((med: any) => ({
+            ...med,
+            // Format nextDue from UTC ISO string to Tunisia timezone
+            // This ensures consistency with patient dashboard
+            nextDue: med.nextDue ? formatTime(med.nextDue) : med.nextDue
+          })),
           medicationCount: patient.medicationCount || 0,
           lastActivity: patient.lastActivity || patient.lastVisit || 'N/A',
           firstName: patient.firstName,
