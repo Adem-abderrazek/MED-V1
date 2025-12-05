@@ -1019,7 +1019,24 @@ class TutorService {
           });
         }
 
-        // Regenerate reminders
+        // Delete old reminders for this prescription before regenerating
+        // This prevents duplicates when schedules are updated
+        console.log('🗑️ Deleting old reminders for updated prescription...');
+        try {
+          await prisma.medicationReminder.deleteMany({
+            where: {
+              prescriptionId: prescriptionId,
+              status: {
+                in: ['scheduled', 'sent'] // Only delete pending reminders, keep confirmed ones
+              }
+            }
+          });
+          console.log('✅ Old reminders deleted');
+        } catch (deleteError) {
+          console.error('⚠️ Warning: Failed to delete old reminders:', deleteError);
+        }
+
+        // Regenerate reminders with new schedules
         console.log('🔄 Regenerating reminders for updated prescription...');
         try {
           await reminderGeneratorService.generateTodaysReminders();
@@ -1227,16 +1244,13 @@ class TutorService {
         });
 
         // Transform reminders to medications format
+        // IMPORTANT: Send scheduledFor as ISO string (UTC) so frontend can consistently format it
+        // This matches the patient dashboard API behavior for consistency
         const medications = todaysReminders.map(reminder => {
-          const scheduledTime = new Date(reminder.scheduledFor);
           return {
             id: reminder.id,
             name: reminder.prescription.medication.name,
-            nextDue: scheduledTime.toLocaleTimeString('fr-FR', {
-              hour: '2-digit',
-              minute: '2-digit',
-              timeZone: 'Africa/Tunis'
-            }),
+            nextDue: reminder.scheduledFor.toISOString(), // Send UTC ISO string, let frontend format with timezone
             status: reminder.status === 'confirmed' || reminder.status === 'manual_confirm' ? 'taken' :
                    reminder.status === 'missed' ? 'missed' : 'pending'
           };

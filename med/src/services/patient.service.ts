@@ -405,10 +405,12 @@ export class PatientService {
    */
   async getPatientMedications(patientId: string): Promise<PatientMedication[]> {
     try {
-      // Get all prescriptions for this patient
+      // Get all active prescriptions for this patient (exclude deleted/inactive)
       const prescriptions = await prisma.prescription.findMany({
         where: {
-          patientId
+          patientId,
+          isActive: true,
+          deletedAt: null
         },
         include: {
           medication: true,
@@ -784,12 +786,61 @@ export class PatientService {
   async getMedicationsByDate(patientId: string, dateStr: string) {
     try {
       // Parse the date string (format: YYYY-MM-DD)
-      const targetDate = new Date(dateStr);
-      const startOfDay = new Date(targetDate.setHours(0, 0, 0, 0));
-      const endOfDay = new Date(targetDate.setHours(23, 59, 59, 999));
+      // IMPORTANT: Parse as local date in Tunisia timezone to match how reminders are stored
+      const [year, month, day] = dateStr.split('-').map(Number);
+      
+      // Create start of day in Tunisia timezone (UTC+1)
+      // When user requests "2025-12-05", they mean Dec 5 in Tunisia time
+      // CRITICAL FIX: Times 00:00-00:59 in Tunisia are stored as 23:00-23:59 UTC of the PREVIOUS day
+      // So for Dec 5, 2025, we need to include:
+      // - Dec 4, 2025 23:00:00 UTC (Dec 5, 2025 00:00:00 Tunisia) 
+      // - Dec 5, 2025 22:59:59 UTC (Dec 5, 2025 23:59:59 Tunisia)
+      const tunisiaOffset = 1; // UTC+1
+      
+      // Start: Previous day 23:00:00 UTC = Today 00:00:00 Tunisia
+      const startOfDay = new Date(Date.UTC(year, month - 1, day - 1, 23, 0, 0, 0));
+      
+      // End: Today 22:59:59 UTC = Today 23:59:59 Tunisia
+      const endOfDay = new Date(Date.UTC(year, month - 1, day, 22, 59, 59, 999));
 
       console.log('🔍 Fetching medications for patient:', patientId);
-      console.log('📅 Date range:', startOfDay, 'to', endOfDay);
+      console.log('📅 Requested date (YYYY-MM-DD):', dateStr);
+      console.log('📅 Date range (UTC):', startOfDay.toISOString(), 'to', endOfDay.toISOString());
+      console.log('📅 Date range (Tunisia):', startOfDay.toLocaleString('fr-FR', { timeZone: 'Africa/Tunis' }), 'to', endOfDay.toLocaleString('fr-FR', { timeZone: 'Africa/Tunis' }));
+
+      // Check if reminders exist for this date, if not, generate them
+      const existingRemindersCount = await prisma.medicationReminder.count({
+        where: {
+          patientId: patientId,
+          scheduledFor: {
+            gte: startOfDay,
+            lte: endOfDay
+          },
+          prescription: {
+            isActive: true,
+            deletedAt: null
+          }
+        }
+      });
+
+      // If no reminders found, try to generate them for this date
+      // This handles cases where reminders weren't generated yet (e.g., prescription created today for a past date)
+      if (existingRemindersCount === 0) {
+        console.log('⚠️ No reminders found for this date, attempting to generate them...');
+        try {
+          const { ReminderGeneratorService } = await import('./reminder-generator.service.js');
+          const reminderGeneratorService = new ReminderGeneratorService();
+          
+          // Generate reminders for the requested date
+          // Create a date object for the requested date in Tunisia timezone
+          const requestedDate = new Date(Date.UTC(year, month - 1, day, 12, 0, 0, 0)); // Use noon to avoid timezone edge cases
+          await reminderGeneratorService.generateRemindersForDate(requestedDate);
+          console.log('✅ Generated reminders for requested date');
+        } catch (genError) {
+          console.error('⚠️ Could not generate reminders for requested date:', genError);
+          // Continue anyway - maybe reminders just don't exist for this date
+        }
+      }
 
       // Get all medication reminders for this date
       // IMPORTANT: Filter out reminders for deleted/inactive prescriptions
