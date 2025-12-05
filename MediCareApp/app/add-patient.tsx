@@ -15,10 +15,13 @@ import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { sendPatientInvitation } from '../services/api/caregiver';
 import CustomModal from '../components/Modal';
+import InternationalPhoneInput, { PhoneInputValue } from '../components/InternationalPhoneInput';
 
 const { width } = Dimensions.get('window');
 
 interface NewPatient {
+  firstName: string;
+  lastName: string;
   phoneNumber: string;
 }
 
@@ -36,8 +39,12 @@ interface PatientInvitationResponse {
 export default function AddPatientScreen() {
   const router = useRouter();
   const [newPatient, setNewPatient] = useState<NewPatient>({
+    firstName: '',
+    lastName: '',
     phoneNumber: ''
   });
+  const [phoneValidation, setPhoneValidation] = useState<PhoneInputValue | null>(null);
+  const [phoneError, setPhoneError] = useState<string | null>(null);
   
   const [sending, setSending] = useState(false);
   const [token, setToken] = useState<string | null>(null);
@@ -90,11 +97,36 @@ export default function AddPatientScreen() {
     loadTokenAndUserType();
   }, []);
 
+  const handlePhoneChange = (value: PhoneInputValue) => {
+    setPhoneValidation(value);
+    setNewPatient(prev => ({ ...prev, phoneNumber: value.e164 }));
+    setPhoneError(null);
+  };
+
   const validateForm = () => {
-    if (!newPatient.phoneNumber.trim()) {
+    if (!newPatient.firstName.trim()) {
       showModal(
         'Erreur',
-        'Le numéro de téléphone est requis',
+        'Le prénom est requis',
+        'error'
+      );
+      return false;
+    }
+
+    if (!newPatient.lastName.trim()) {
+      showModal(
+        'Erreur',
+        'Le nom est requis',
+        'error'
+      );
+      return false;
+    }
+
+    if (!phoneValidation || !phoneValidation.isValid) {
+      setPhoneError("Veuillez saisir un numéro de téléphone valide");
+      showModal(
+        'Erreur',
+        'Veuillez saisir un numéro de téléphone valide',
         'error'
       );
       return false;
@@ -129,7 +161,11 @@ export default function AddPatientScreen() {
     }
 
     console.log('✅ Token available:', token.substring(0, 20) + '...');
-    console.log('📝 Patient phone number:', newPatient.phoneNumber);
+    console.log('📝 Patient data:', {
+      firstName: newPatient.firstName,
+      lastName: newPatient.lastName,
+      phoneNumber: newPatient.phoneNumber
+    });
 
     setSending(true);
 
@@ -139,8 +175,11 @@ export default function AddPatientScreen() {
       console.log('───────────────────────────────────────────────────');
 
       // Send patient invitation using API service (without voice message)
+      // Use E.164 format from phone validation
       const invitationData = {
-        phoneNumber: newPatient.phoneNumber
+        firstName: newPatient.firstName.trim(),
+        lastName: newPatient.lastName.trim(),
+        phoneNumber: phoneValidation?.e164 || newPatient.phoneNumber.trim()
       };
 
       console.log('📝 Invitation data:', JSON.stringify(invitationData, null, 2));
@@ -246,8 +285,8 @@ export default function AddPatientScreen() {
           {/* Patient Information Card */}
           <View style={[styles.card, { backgroundColor: `${colors.primary}10`, borderColor: `${colors.primary}20` }]}>
             <View style={styles.cardHeader}>
-              <Ionicons name="phone-portrait" size={24} color={colors.primary} />
-              <Text style={[styles.cardTitle, { color: colors.text }]}>Numéro de Téléphone</Text>
+              <Ionicons name="person" size={24} color={colors.primary} />
+              <Text style={[styles.cardTitle, { color: colors.text }]}>Informations du Patient</Text>
             </View>
             
             <View style={styles.inputContainer}>
@@ -257,12 +296,45 @@ export default function AddPatientScreen() {
                   borderColor: `${colors.primary}20`,
                   color: colors.text
                 }]}
-                placeholder="Numéro de téléphone du patient"
+                placeholder="Prénom du patient"
                 placeholderTextColor={colors.textTertiary}
-                value={newPatient.phoneNumber}
-                onChangeText={(text) => setNewPatient({...newPatient, phoneNumber: text})}
-                keyboardType="phone-pad"
+                value={newPatient.firstName}
+                onChangeText={(text) => setNewPatient({...newPatient, firstName: text})}
+                autoCapitalize="words"
                 autoFocus={true}
+              />
+              
+              <TextInput
+                style={[styles.input, { 
+                  backgroundColor: `${colors.primary}10`,
+                  borderColor: `${colors.primary}20`,
+                  color: colors.text
+                }]}
+                placeholder="Nom du patient"
+                placeholderTextColor={colors.textTertiary}
+                value={newPatient.lastName}
+                onChangeText={(text) => setNewPatient({...newPatient, lastName: text})}
+                autoCapitalize="words"
+              />
+            </View>
+
+            {/* Phone Input */}
+            <View style={styles.phoneInputWrapper}>
+              <InternationalPhoneInput
+                value={newPatient.phoneNumber}
+                onChange={handlePhoneChange}
+                onBlur={() => {
+                  if (phoneValidation && !phoneValidation.isValid) {
+                    setPhoneError("Veuillez saisir un numéro de téléphone valide");
+                  }
+                }}
+                defaultCountry="TN"
+                required={true}
+                error={phoneError || undefined}
+                theme={userType || 'medecin'}
+                placeholder="Numéro de téléphone du patient"
+                accessibilityLabel="Patient phone number"
+                testID="add-patient-phone-input"
               />
             </View>
           </View>
@@ -272,14 +344,14 @@ export default function AddPatientScreen() {
             <TouchableOpacity 
               style={[
                 styles.sendButton,
-                (!newPatient.phoneNumber || sending) && styles.disabledButton,
+                (!newPatient.firstName || !newPatient.lastName || !newPatient.phoneNumber || sending) && styles.disabledButton,
                 { shadowColor: colors.primary }
               ]}
               onPress={sendInvitation}
-              disabled={!newPatient.phoneNumber || sending}
+              disabled={!newPatient.firstName || !newPatient.lastName || !phoneValidation?.isValid || sending}
             >
               <LinearGradient
-                colors={(!newPatient.phoneNumber || sending) ? disabledGradient : primaryGradient}
+                colors={(!newPatient.firstName || !newPatient.lastName || !phoneValidation?.isValid || sending) ? disabledGradient : primaryGradient}
                 style={styles.sendButtonGradient}
               >
                 <Ionicons name="send" size={20} color="white" />
@@ -426,5 +498,8 @@ const styles = StyleSheet.create({
     fontSize: 14,
     marginLeft: 12,
     lineHeight: 20,
+  },
+  phoneInputWrapper: {
+    marginTop: 16,
   },
 });

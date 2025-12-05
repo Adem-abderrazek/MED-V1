@@ -16,6 +16,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import VerificationModal from "../components/VerificationModal";
 import RolePicker from "../components/RolePicker";
 import DatePicker from "../components/DatePicker";
+import InternationalPhoneInput, { PhoneInputValue } from "../components/InternationalPhoneInput";
 import { register } from '../services/api/common';
 
 export default function RegisterScreen() {
@@ -30,6 +31,8 @@ export default function RegisterScreen() {
     userType: "patient",
     dateNaissance: new Date(), // Default to today
   });
+  const [phoneValidation, setPhoneValidation] = useState<PhoneInputValue | null>(null);
+  const [phoneError, setPhoneError] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -49,17 +52,10 @@ export default function RegisterScreen() {
     setModalVisible(true);
   };
 
-  const validateTunisianPhone = (phone: string): boolean => {
-    // Remove all non-digit characters
-    const cleanPhone = phone.replace(/\D/g, '');
-    
-    // Tunisian phone number patterns:
-    // Mobile: +216 XX XXX XXX or 216 XX XXX XXX or 0X XXX XXX
-    // Landline: +216 XX XXX XXX or 216 XX XXX XXX or 0X XXX XXX
-    const mobilePattern = /^(?:\+216|216|0)?[2-5]\d{7}$/;
-    const landlinePattern = /^(?:\+216|216|0)?[7-9]\d{7}$/;
-    
-    return mobilePattern.test(cleanPhone) || landlinePattern.test(cleanPhone);
+  const handlePhoneChange = (value: PhoneInputValue) => {
+    setPhoneValidation(value);
+    setFormData(prev => ({ ...prev, phoneNumber: value.e164 }));
+    setPhoneError(null);
   };
 
   const validateEmail = (email: string): boolean => {
@@ -103,10 +99,15 @@ export default function RegisterScreen() {
       return;
     }
 
-    if (!validateTunisianPhone(phoneNumber)) {
-      showModal("error", "Numéro invalide", "Veuillez saisir un numéro de téléphone tunisien valide (ex: +216 XX XXX XXX)");
+    // Validate phone number using the phone input component
+    if (!phoneValidation || !phoneValidation.isValid) {
+      setPhoneError("Veuillez saisir un numéro de téléphone valide");
+      showModal("error", "Numéro invalide", "Veuillez saisir un numéro de téléphone valide");
       return;
     }
+
+    // Use E.164 format for API
+    const phoneNumberE164 = phoneValidation.e164;
 
     if (password !== confirmPassword) {
       showModal("error", "Mots de passe différents", "Les mots de passe ne correspondent pas");
@@ -126,11 +127,11 @@ export default function RegisterScreen() {
     setIsLoading(true);
     
     try {
-      // Call real API
+      // Call real API with E.164 format
       const result = await register({
         firstName,
         lastName,
-        phoneNumber,
+        phoneNumber: phoneNumberE164,
         email,
         password,
         userType: userType as 'patient' | 'tuteur' | 'medecin'
@@ -242,18 +243,22 @@ export default function RegisterScreen() {
               </View>
 
               {/* Phone Input */}
-              <View style={styles.inputContainer}>
-                <View style={styles.inputIcon}>
-                  <Ionicons name="call-outline" size={20} color="rgba(255, 255, 255, 0.6)" />
-                </View>
-                <TextInput
-                  style={styles.input}
-                  placeholder="Numéro de téléphone tunisien"
-                  placeholderTextColor="rgba(255, 255, 255, 0.6)"
+              <View style={styles.phoneInputWrapper}>
+                <InternationalPhoneInput
                   value={formData.phoneNumber}
-                  onChangeText={(value) => handleInputChange("phoneNumber", value)}
-                  keyboardType="phone-pad"
-                  autoCorrect={false}
+                  onChange={handlePhoneChange}
+                  onBlur={() => {
+                    if (phoneValidation && !phoneValidation.isValid) {
+                      setPhoneError("Veuillez saisir un numéro de téléphone valide");
+                    }
+                  }}
+                  defaultCountry="TN"
+                  required={true}
+                  error={phoneError || undefined}
+                  theme="patient"
+                  placeholder="Numéro de téléphone"
+                  accessibilityLabel="Phone number"
+                  testID="register-phone-input"
                 />
               </View>
 
@@ -505,5 +510,8 @@ const styles = StyleSheet.create({
     color: "#4facfe",
     fontSize: 16,
     fontWeight: "600",
+  },
+  phoneInputWrapper: {
+    marginBottom: 16,
   },
 });

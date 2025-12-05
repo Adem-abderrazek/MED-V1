@@ -20,16 +20,17 @@ export const THEME_COLORS = {
     text: '#FFFFFF',
     textSecondary: 'rgba(255, 255, 255, 0.8)',
     textTertiary: 'rgba(255, 255, 255, 0.6)',
-    error: ['#EF4444', '#DC2626'],
-    success: ['#10B981', '#059669'],
-    warning: ['#F59E0B', '#D97706'],
-    info: ['#3B82F6', '#2563EB'],
+    error: '#EF4444',
+    success: '#10B981',
+    warning: '#F59E0B',
+    info: '#3B82F6',
+    border: 'rgba(255, 255, 255, 0.2)',
   }
 };
 
 // Function to get theme colors based on user type
-export const getThemeColors = (userType: 'medecin' | 'tuteur' | null) => {
-  const baseTheme = userType ? THEME_COLORS[userType] : THEME_COLORS.medecin;
+export const getThemeColors = (userType: 'medecin' | 'tuteur' | 'patient' | null) => {
+  const baseTheme = userType && userType !== 'patient' ? THEME_COLORS[userType] : THEME_COLORS.medecin;
   return {
     ...baseTheme,
     ...THEME_COLORS.shared,

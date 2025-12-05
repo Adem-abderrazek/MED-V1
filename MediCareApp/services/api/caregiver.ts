@@ -142,7 +142,7 @@ export async function getDoctorDashboard(token: string) {
   });
 }
 
-export async function sendPatientInvitation(token: string, invitationData: { phoneNumber: string }) {
+export async function sendPatientInvitation(token: string, invitationData: { firstName: string; lastName: string; phoneNumber: string }) {
   return request('/tutor/patients/invite', {
     method: 'POST',
     headers: { 'Authorization': `Bearer ${token}` },
