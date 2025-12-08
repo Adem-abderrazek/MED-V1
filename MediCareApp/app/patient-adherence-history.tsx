@@ -119,6 +119,7 @@ export default function PatientAdherenceHistoryScreen() {
       weekday: 'short',
       day: '2-digit',
       month: 'short',
+      timeZone: 'Africa/Tunis'
     });
   };
 

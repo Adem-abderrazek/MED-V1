@@ -1,7 +1,7 @@
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter, useFocusEffect } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import React, { useState, useCallback, useMemo, useEffect } from "react";
+import React, { useState, useCallback, useMemo, useEffect, useRef } from "react";
 import {
   StyleSheet,
   Text,
@@ -11,6 +11,8 @@ import {
   RefreshControl,
   Dimensions,
   ScrollView,
+  AppState,
+  AppStateStatus,
 } from "react-native";
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -19,6 +21,7 @@ import { registerPushToken } from '../services/api/common';
 import CustomModal from '../components/Modal';
 import { notificationService } from '../services/notificationService';
 import { formatTime } from '../utils/timeFormatting';
+import { alarmService } from '../services/alarmService';
 
 const { width } = Dimensions.get('window');
 
@@ -83,6 +86,16 @@ export default function PatientDashboardScreen() {
   const [hasCheckedInitialSync, setHasCheckedInitialSync] = useState(false);
   const [isOnline, setIsOnline] = useState(true);
   const [pendingSyncCount, setPendingSyncCount] = useState(0);
+  
+  // Use refs to track sync status and function without causing re-renders
+  const isSyncingRef = useRef(false);
+  const hasCheckedInitialSyncRef = useRef(false);
+  const syncRemindersRef = useRef<((silent?: boolean) => Promise<void>) | null>(null);
+  
+  // Refs for update check tracking to prevent infinite loops
+  const isCheckingUpdatesRef = useRef(false);
+  const lastUpdateCheckRef = useRef<number>(0);
+  const checkForUpdatesRef = useRef<(() => Promise<void>) | null>(null);
 
   // Modal state
   const [modalVisible, setModalVisible] = useState(false);
@@ -126,12 +139,34 @@ export default function PatientDashboardScreen() {
     setModalVisible(true);
   }, []);
 
-  const loadMedicationsForDate = async (date: Date) => {
+  const loadMedicationsForDate = useCallback(async (date: Date) => {
     try {
       const storedToken = await AsyncStorage.getItem('userToken');
       if (!storedToken) {
         showModal('Erreur', 'Session expirée. Veuillez vous reconnecter.', 'error');
         router.push('/login');
+        return;
+      }
+
+      // Verify user type before making patient-specific API calls
+      const userDataStr = await AsyncStorage.getItem('userData');
+      if (!userDataStr) {
+        console.error('❌ User data not found in storage');
+        showModal('Erreur', 'Données utilisateur introuvables. Veuillez vous reconnecter.', 'error');
+        router.push('/login');
+        return;
+      }
+
+      const userData = JSON.parse(userDataStr);
+      if (userData.userType !== 'patient') {
+        console.warn(`⚠️ Access denied: User type is '${userData.userType}', but patient endpoint was called`);
+        console.warn('⚠️ Redirecting to appropriate dashboard...');
+        // Redirect to appropriate dashboard based on user type
+        if (userData.userType === 'medecin' || userData.userType === 'tuteur') {
+          router.replace('/doctor-dashboard');
+        } else {
+          router.replace('/login');
+        }
         return;
       }
 
@@ -157,7 +192,7 @@ export default function PatientDashboardScreen() {
       
       console.log('📅 Loading medications for date:', dateStr, '(local timezone)');
       
-      // Call API to get medications for specific date
+      // Call API to get medications for specific date (only if user is a patient)
       const result = await getPatientMedicationsByDate(storedToken, dateStr);
       
       if (result.success && result.data) {
@@ -173,18 +208,64 @@ export default function PatientDashboardScreen() {
       }
     } catch (error: any) {
       console.error('Error loading medications:', error);
+      // Check if error is due to user type mismatch
+      if (error?.message?.includes('Access denied for this user type')) {
+        console.warn('⚠️ Access denied - user type mismatch detected');
+        // Try to redirect to appropriate dashboard
+        try {
+          const userDataStr = await AsyncStorage.getItem('userData');
+          if (userDataStr) {
+            const userData = JSON.parse(userDataStr);
+            if (userData.userType === 'medecin' || userData.userType === 'tuteur') {
+              router.replace('/doctor-dashboard');
+              return;
+            }
+          }
+        } catch (redirectError) {
+          console.error('Error during redirect:', redirectError);
+        }
+      }
       showModal('Erreur', 'Impossible de charger les médicaments', 'error');
     } finally {
       setIsLoading(false);
       setIsRefreshing(false);
     }
-  };
+  }, [router, showModal]); // Memoize to prevent unnecessary re-renders
 
   // Sync reminders for offline use
   const syncReminders = useCallback(async (silent: boolean = false) => {
-    if (!token || isSyncing) return;
+    // Use ref to check sync status without causing dependency issues
+    if (!token || isSyncingRef.current) {
+      console.log('⏸️ Sync skipped: no token or already syncing');
+      return;
+    }
 
     try {
+      // Verify user type before making patient-specific API calls
+      const userDataStr = await AsyncStorage.getItem('userData');
+      if (!userDataStr) {
+        console.error('❌ User data not found in storage');
+        if (!silent) {
+          showModal('Erreur', 'Données utilisateur introuvables. Veuillez vous reconnecter.', 'error');
+        }
+        return;
+      }
+
+      const userData = JSON.parse(userDataStr);
+      if (userData.userType !== 'patient') {
+        console.warn(`⚠️ Access denied: User type is '${userData.userType}', but patient sync was attempted`);
+        if (!silent) {
+          showModal('Erreur', 'Accès refusé: Cette fonctionnalité est réservée aux patients.', 'error');
+        }
+        // Redirect to appropriate dashboard
+        if (userData.userType === 'medecin' || userData.userType === 'tuteur') {
+          router.replace('/doctor-dashboard');
+        }
+        return;
+      }
+
+      // Set both ref and state
+      isSyncingRef.current = true;
       setIsSyncing(true);
       console.log('🔄 Starting reminder sync...');
 
@@ -216,32 +297,140 @@ export default function PatientDashboardScreen() {
           showModal('Erreur de synchronisation', 'Une erreur est survenue lors de la synchronisation', 'error');
         }
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error syncing reminders:', error);
+      // Check if error is due to user type mismatch
+      if (error?.message?.includes('Access denied for this user type')) {
+        console.warn('⚠️ Access denied - user type mismatch detected during sync');
+        try {
+          const userDataStr = await AsyncStorage.getItem('userData');
+          if (userDataStr) {
+            const userData = JSON.parse(userDataStr);
+            if (userData.userType === 'medecin' || userData.userType === 'tuteur') {
+              router.replace('/doctor-dashboard');
+              return;
+            }
+          }
+        } catch (redirectError) {
+          console.error('Error during redirect:', redirectError);
+        }
+      }
       if (!silent) {
         showModal('Erreur', 'Impossible de synchroniser les rappels', 'error');
       }
     } finally {
+      // Reset both ref and state
+      isSyncingRef.current = false;
       setIsSyncing(false);
+      console.log('✅ Sync completed, state reset');
     }
-  }, [token, isSyncing]);
+  }, [token, router, showModal]); // Removed isSyncing from dependencies to prevent infinite loop
 
-  // Check for updates
+  // Store syncReminders in ref so it can be called from useEffect without dependency issues
+  useEffect(() => {
+    syncRemindersRef.current = syncReminders;
+  }, [syncReminders]);
+
+  // Track previous token to detect when it changes from null to a value
+  const prevTokenRef = useRef<string | null>(null);
+  
+  // Reset initial sync check only when token changes from null to a value (new login)
+  useEffect(() => {
+    const prevToken = prevTokenRef.current;
+    prevTokenRef.current = token;
+    
+    // Only reset if token changed from null/undefined to a value (new login)
+    if (token && !prevToken) {
+      console.log('🔄 Token detected, resetting initial sync check');
+      hasCheckedInitialSyncRef.current = false;
+      setHasCheckedInitialSync(false);
+    } else if (!token && prevToken) {
+      // Clear ref when token is removed (logout)
+      hasCheckedInitialSyncRef.current = false;
+      setHasCheckedInitialSync(false);
+    }
+  }, [token]);
+
+  // Check for updates with debouncing to prevent infinite loops
   const checkForUpdates = useCallback(async () => {
     if (!token) return;
 
+    // Guard: Prevent concurrent update checks
+    if (isCheckingUpdatesRef.current) {
+      console.log('⏸️ Update check already in progress, skipping...');
+      return;
+    }
+
+    // Guard: Enforce minimum 30-second interval between checks
+    const now = Date.now();
+    const timeSinceLastCheck = now - lastUpdateCheckRef.current;
+    const MIN_CHECK_INTERVAL = 30000; // 30 seconds
+
+    if (timeSinceLastCheck < MIN_CHECK_INTERVAL) {
+      console.log(`⏸️ Update check throttled: ${Math.round(timeSinceLastCheck / 1000)}s since last check (min: ${MIN_CHECK_INTERVAL / 1000}s)`);
+      return;
+    }
+
     try {
+      // Set flag to prevent concurrent calls
+      isCheckingUpdatesRef.current = true;
+      lastUpdateCheckRef.current = now;
+
+      // Verify user type before making patient-specific API calls
+      const userDataStr = await AsyncStorage.getItem('userData');
+      if (!userDataStr) {
+        console.error('❌ User data not found in storage');
+        return;
+      }
+
+      const userData = JSON.parse(userDataStr);
+      if (userData.userType !== 'patient') {
+        console.warn(`⚠️ Access denied: User type is '${userData.userType}', but patient update check was attempted`);
+        // Redirect to appropriate dashboard
+        if (userData.userType === 'medecin' || userData.userType === 'tuteur') {
+          router.replace('/doctor-dashboard');
+        }
+        return;
+      }
+
+      console.log('🔄 Checking for updates...');
       const { default: localReminderService } = await import('../services/localReminderService');
       const updateStatus = await localReminderService.checkForUpdates(token);
       
       if (updateStatus.hasUpdates) {
         setHasUpdates(true);
         console.log('⚠️ Updates available');
+      } else {
+        setHasUpdates(false);
+        console.log('✅ No updates available');
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error checking for updates:', error);
+      // Check if error is due to user type mismatch
+      if (error?.message?.includes('Access denied for this user type')) {
+        console.warn('⚠️ Access denied - user type mismatch detected during update check');
+        try {
+          const userDataStr = await AsyncStorage.getItem('userData');
+          if (userDataStr) {
+            const userData = JSON.parse(userDataStr);
+            if (userData.userType === 'medecin' || userData.userType === 'tuteur') {
+              router.replace('/doctor-dashboard');
+            }
+          }
+        } catch (redirectError) {
+          console.error('Error during redirect:', redirectError);
+        }
+      }
+    } finally {
+      // Always reset the flag
+      isCheckingUpdatesRef.current = false;
     }
-  }, [token]);
+  }, [token, router]);
+
+  // Store checkForUpdates in ref to avoid dependency issues
+  useEffect(() => {
+    checkForUpdatesRef.current = checkForUpdates;
+  }, [checkForUpdates]);
 
   // Load last sync time
   const loadLastSyncTime = useCallback(async () => {
@@ -257,24 +446,95 @@ export default function PatientDashboardScreen() {
   // Load medications when screen comes into focus or date changes
   useFocusEffect(
     useCallback(() => {
-      loadMedicationsForDate(selectedDate);
-      loadLastSyncTime();
-      checkForUpdates();
-    }, [selectedDate])
+      console.log('📱 Dashboard focused - syncing confirmations first, then loading data...');
+      
+      // CRITICAL: Sync confirmations FIRST before loading medications
+      // This ensures confirmations are synced to backend before displaying
+      // Note: syncNativeAlarmConfirmations already reloads medications if sync happens
+      syncNativeAlarmConfirmations().then((syncHappened) => {
+        console.log(`✅ Sync completed (sync happened: ${syncHappened}), now loading medications...`);
+        
+        // Only reload medications if sync didn't happen (syncNativeAlarmConfirmations already reloads if it did)
+        // This prevents double-loading and ensures we always have fresh data
+        if (!syncHappened) {
+          loadMedicationsForDate(selectedDate);
+        }
+        
+        loadLastSyncTime();
+        
+        // Conditionally check for updates only if enough time has passed
+        // Use ref to call function to avoid dependency issues
+        const now = Date.now();
+        const timeSinceLastCheck = now - lastUpdateCheckRef.current;
+        const MIN_CHECK_INTERVAL = 30000; // 30 seconds
+        
+        if (timeSinceLastCheck >= MIN_CHECK_INTERVAL && checkForUpdatesRef.current) {
+          console.log('🔄 Checking for updates (focus effect)...');
+          checkForUpdatesRef.current();
+        } else if (timeSinceLastCheck < MIN_CHECK_INTERVAL) {
+          console.log(`⏸️ Skipping update check: ${Math.round(timeSinceLastCheck / 1000)}s since last check`);
+        }
+      }).catch(err => {
+        console.log('⚠️ Sync error (continuing anyway):', err?.message || err);
+        // Still load medications even if sync fails
+        loadMedicationsForDate(selectedDate);
+        loadLastSyncTime();
+        
+        // Conditionally check for updates only if enough time has passed
+        const now = Date.now();
+        const timeSinceLastCheck = now - lastUpdateCheckRef.current;
+        const MIN_CHECK_INTERVAL = 30000; // 30 seconds
+        
+        if (timeSinceLastCheck >= MIN_CHECK_INTERVAL && checkForUpdatesRef.current) {
+          console.log('🔄 Checking for updates (focus effect, after error)...');
+          checkForUpdatesRef.current();
+        } else if (timeSinceLastCheck < MIN_CHECK_INTERVAL) {
+          console.log(`⏸️ Skipping update check: ${Math.round(timeSinceLastCheck / 1000)}s since last check`);
+        }
+      });
+    }, [selectedDate, syncNativeAlarmConfirmations, loadMedicationsForDate, loadLastSyncTime])
   );
+
+  // Sync when app comes to foreground (important for when user returns from alarm)
+  useEffect(() => {
+    const subscription = AppState.addEventListener('change', (nextAppState: AppStateStatus) => {
+      if (nextAppState === 'active' && token) {
+        console.log('📱 App came to foreground - syncing confirmations...');
+        syncNativeAlarmConfirmations().then((syncHappened) => {
+          // Only reload if sync didn't happen (syncNativeAlarmConfirmations already reloads if it did)
+          if (!syncHappened) {
+            loadMedicationsForDate(selectedDate);
+          }
+        }).catch(err => {
+          console.log('⚠️ Foreground sync error:', err?.message || err);
+          // Still reload on error
+          loadMedicationsForDate(selectedDate);
+        });
+      }
+    });
+
+    return () => {
+      subscription.remove();
+    };
+  }, [token, syncNativeAlarmConfirmations, loadMedicationsForDate, selectedDate]);
 
   // Separate effect for initial sync (runs once when token is available)
   useEffect(() => {
     const doInitialSync = async () => {
-      if (token && !hasCheckedInitialSync && !isSyncing) {
-        setHasCheckedInitialSync(true); // Prevent running again
+      // Use refs to check status to avoid dependency issues
+      if (token && !hasCheckedInitialSyncRef.current && !isSyncingRef.current) {
+        hasCheckedInitialSyncRef.current = true; // Prevent running again
+        setHasCheckedInitialSync(true); // Update state for UI if needed
         
         try {
           const syncTime = await AsyncStorage.getItem('@last_sync_time');
           if (!syncTime) {
             console.log('📱 No previous sync found, syncing silently in background...');
             // Silent sync - doesn't show modal, doesn't block UI
-            syncReminders(true); // true = silent mode
+            // Use ref to call function without dependency
+            if (syncRemindersRef.current) {
+              await syncRemindersRef.current(true); // true = silent mode
+            }
           }
         } catch (error) {
           console.error('Error checking initial sync:', error);
@@ -285,7 +545,7 @@ export default function PatientDashboardScreen() {
     // Small delay to let UI render first
     const timer = setTimeout(doInitialSync, 500);
     return () => clearTimeout(timer);
-  }, [token, hasCheckedInitialSync, isSyncing, syncReminders]); // Include all dependencies
+  }, [token]); // Only depend on token - use refs for everything else
 
   // Real-time countdown timer - updates every second
   useEffect(() => {
@@ -336,9 +596,92 @@ export default function PatientDashboardScreen() {
   }, [token]);
 
   const onRefresh = useCallback(() => {
+    console.log('🔄 Manual refresh triggered - syncing and reloading...');
     setIsRefreshing(true);
-    loadMedicationsForDate(selectedDate);
-  }, [selectedDate]);
+    // Sync confirmations FIRST, then reload medications
+    syncNativeAlarmConfirmations().then(() => {
+      console.log('✅ Sync completed in refresh, reloading medications...');
+      loadMedicationsForDate(selectedDate);
+    }).catch(err => {
+      console.log('⚠️ Sync error in refresh:', err?.message || err);
+      // Still load medications even if sync fails
+      loadMedicationsForDate(selectedDate);
+    });
+  }, [selectedDate, syncNativeAlarmConfirmations, loadMedicationsForDate]);
+
+  // Sync pending confirmations from native alarm module
+  const syncNativeAlarmConfirmations = useCallback(async () => {
+    if (!token) {
+      console.log('⚠️ No token available for sync');
+      return false; // Return false to indicate no sync happened
+    }
+    
+    try {
+      // Check if alarm service is available (Android only)
+      if (!alarmService || !alarmService.isAvailable()) {
+        console.log('⚠️ Alarm service not available (iOS or not built)');
+        return false; // Skip on iOS or if service not available
+      }
+      
+      console.log('🔄 Checking for pending confirmations from native alarm...');
+      
+      // Get pending confirmations from native alarm module
+      const pendingConfirmations = await alarmService.getPendingConfirmations();
+      
+      console.log(`📥 Retrieved ${pendingConfirmations.length} pending confirmations from native module`);
+      
+      if (pendingConfirmations.length > 0) {
+        console.log(`📥 Found ${pendingConfirmations.length} pending confirmations from native alarm`);
+        console.log('📋 Reminder IDs:', pendingConfirmations.map(c => c.reminderId));
+        
+        // Confirm each medication with backend
+        const reminderIds = pendingConfirmations.map(c => c.reminderId);
+        console.log('📤 Sending confirmation to backend for reminder IDs:', reminderIds);
+        
+        const result = await confirmMedicationTaken(token, reminderIds);
+        
+        if (result.success) {
+          console.log('✅ Synced native alarm confirmations to backend successfully');
+          
+          // Clear pending confirmations from native module
+          await alarmService.clearPendingConfirmations();
+          console.log('🧹 Cleared pending confirmations from native module');
+          
+          // CRITICAL: Wait a brief moment for backend to process, then reload medications
+          // This ensures the backend has updated the status before we fetch
+          await new Promise(resolve => setTimeout(resolve, 500));
+          
+          // Force reload medications to show updated status
+          console.log('🔄 Reloading medications to show updated status...');
+          await loadMedicationsForDate(selectedDate);
+          console.log('✅ Medications reloaded after sync');
+          
+          return true; // Return true to indicate sync completed successfully
+        } else {
+          console.error('❌ Failed to sync native alarm confirmations:', result.message);
+          console.error('❌ Backend response:', result);
+          return false;
+        }
+      } else {
+        console.log('ℹ️ No pending confirmations to sync');
+        return false; // No sync needed
+      }
+    } catch (error: any) {
+      // Log error but don't break the app
+      if (error?.message?.includes("doesn't exist") || error?.message?.includes("alarmService") || error?.message?.includes("Property")) {
+        // Service not available (iOS or not built yet) - this is OK
+        console.log('ℹ️ Alarm service not available (expected on iOS)');
+        return false;
+      }
+      console.error('❌ Error syncing native alarm confirmations:', error);
+      console.error('❌ Error details:', {
+        name: error?.name,
+        message: error?.message,
+        stack: error?.stack
+      });
+      return false;
+    }
+  }, [token, selectedDate, loadMedicationsForDate]);
 
   const handleDateSelect = useCallback((date: Date) => {
     setSelectedDate(date);
@@ -348,12 +691,23 @@ export default function PatientDashboardScreen() {
     if (!token) return;
 
     try {
+      // Sync native confirmations first to ensure any pending confirmations are synced
+      console.log('🔄 Syncing native confirmations before marking as taken...');
+      await syncNativeAlarmConfirmations();
+      
+      // Confirm medication with backend
+      console.log(`✅ Confirming medication: ${reminderId}`);
       const result = await confirmMedicationTaken(token, [reminderId]);
       
       if (result.success) {
+        console.log('✅ Medication confirmed successfully');
         showModal('Succès', 'Médicament marqué comme pris!', 'success');
+        
+        // Reload medications to show updated status
+        console.log('🔄 Reloading medications to show updated status...');
         await loadMedicationsForDate(selectedDate);
       } else {
+        console.error('❌ Failed to confirm medication:', result.message);
         showModal('Erreur', result.message || 'Impossible de marquer le médicament', 'error');
       }
     } catch (error: any) {
@@ -367,7 +721,7 @@ export default function PatientDashboardScreen() {
         showModal('Erreur', errorMessage, 'error');
       }
     }
-  }, [token, selectedDate]);
+  }, [token, selectedDate, loadMedicationsForDate, syncNativeAlarmConfirmations, showModal]);
 
   const handleLogout = async () => {
     try {

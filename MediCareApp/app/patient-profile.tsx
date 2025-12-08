@@ -44,6 +44,7 @@ interface Medication {
   isActive: boolean;
   instructions?: string;
   customDosage?: string;
+  voiceMessageId?: string | null; // ✅ Add voice message ID
   medication?: {
     id: string;
     name: string;
@@ -59,6 +60,7 @@ interface Medication {
   isChronic?: boolean;
   scheduleType?: 'daily' | 'weekly' | 'interval';
   intervalHours?: number;
+  repeatWeeks?: number;
 }
 
 export default function PatientProfileScreen() {
@@ -102,6 +104,7 @@ export default function PatientProfileScreen() {
   const [showVoiceRecorder, setShowVoiceRecorder] = useState(false);
   const [currentPlayingVoice, setCurrentPlayingVoice] = useState<string | null>(null);
   const [currentVoiceUri, setCurrentVoiceUri] = useState<string | null>(null);
+  const [isPlaying, setIsPlaying] = useState(false);
   
   // Adherence history state
   const [adherenceHistory, setAdherenceHistory] = useState<any>(null);
@@ -110,6 +113,86 @@ export default function PatientProfileScreen() {
   
   // Initialize audio player for voice messages
   const voicePlayer = useAudioPlayer(currentVoiceUri ? { uri: currentVoiceUri } : null);
+
+  // Auto-play when a new URI is set and we have a playing voice ID
+  useEffect(() => {
+    if (!voicePlayer || !currentVoiceUri || !currentPlayingVoice) {
+      return;
+    }
+
+    // Auto-play when a new player instance is created with a URI
+    const playAudio = async () => {
+      try {
+        // Small delay to ensure player is fully initialized
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
+        if (voicePlayer && currentVoiceUri && !voicePlayer.playing) {
+          await voicePlayer.play();
+          // isPlaying is already set optimistically, but ensure it's true after successful play
+          setIsPlaying(true);
+          console.log('✅ Voice playback started (auto-play)');
+        }
+      } catch (error: any) {
+        console.error('❌ Error in auto-play:', error);
+        // If play fails, revert optimistic update
+        setIsPlaying(false);
+        setCurrentPlayingVoice(null);
+        setCurrentVoiceUri(null);
+      }
+    };
+
+    playAudio();
+  }, [currentVoiceUri, currentPlayingVoice]); // Only trigger when URI or playing voice changes
+
+  // Listen to player state changes to update icon
+  useEffect(() => {
+    if (!voicePlayer || !currentVoiceUri) {
+      setIsPlaying(false);
+      return;
+    }
+
+    try {
+      setIsPlaying(voicePlayer.playing);
+      
+      // Poll player state to keep UI in sync (expo-audio doesn't provide event listeners)
+      const interval = setInterval(() => {
+        try {
+          // Check if player is still valid before accessing properties
+          if (!voicePlayer || !currentVoiceUri) {
+            setIsPlaying(false);
+            if (currentPlayingVoice) {
+              setCurrentPlayingVoice(null);
+              setCurrentVoiceUri(null);
+            }
+            return;
+          }
+          
+          const currentlyPlaying = voicePlayer.playing;
+          if (currentlyPlaying !== isPlaying) {
+            setIsPlaying(currentlyPlaying);
+          }
+          // If player stopped but we still have a currentPlayingVoice, clear it
+          if (!currentlyPlaying && currentPlayingVoice) {
+            setCurrentPlayingVoice(null);
+            setCurrentVoiceUri(null);
+          }
+        } catch (error) {
+          // Player was released, clear state
+          console.log('Player state check error (player likely released):', error);
+          setIsPlaying(false);
+          if (currentPlayingVoice) {
+            setCurrentPlayingVoice(null);
+            setCurrentVoiceUri(null);
+          }
+        }
+      }, 100);
+      
+      return () => clearInterval(interval);
+    } catch (error) {
+      console.log('Error setting up player state listener:', error);
+      setIsPlaying(false);
+    }
+  }, [voicePlayer, isPlaying, currentPlayingVoice, currentVoiceUri]);
 
   // Load token on mount
   useEffect(() => {
@@ -201,13 +284,21 @@ export default function PatientProfileScreen() {
   }, [loadPatientData]);
 
   // Reload data when screen comes into focus
+  // This ensures data is refreshed when returning from edit screens or when patient info is updated
   useFocusEffect(
     useCallback(() => {
       console.log('📱 Patient profile screen focused - refreshing data...');
-      if (token && patientId) {
-        loadPatientData();
-      }
-    }, [token, patientId, loadPatientData])
+      const refreshData = async () => {
+        const storedToken = await AsyncStorage.getItem('userToken');
+        if (storedToken && patientId) {
+          setToken(storedToken);
+          // Reload all patient data
+          await loadPatientData();
+        }
+      };
+      refreshData();
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [patientId]) // Only depend on patientId to ensure it refreshes on focus
   );
 
   const onRefresh = useCallback(() => {
@@ -279,9 +370,14 @@ export default function PatientProfileScreen() {
       }
 
       let result;
-      if (selectedPrescription) {
+      // Check if prescriptionData has an ID (from modal) or if selectedPrescription exists
+      if (prescriptionData.id || selectedPrescription) {
         // Update existing prescription
-        result = await apiService.updatePrescription(token, selectedPrescription.id, prescriptionData);
+        const prescriptionId = prescriptionData.id || selectedPrescription?.id;
+        if (!prescriptionId) {
+          throw new Error('ID de prescription manquant pour la mise à jour');
+        }
+        result = await apiService.updatePrescription(token, prescriptionId, prescriptionData);
       } else {
         // Create new prescription
         result = await apiService.createPrescription(token, patientId, prescriptionData);
@@ -317,32 +413,82 @@ export default function PatientProfileScreen() {
   const handlePlayVoiceMessage = async (messageId: string, fileUrl: string) => {
     try {
       // If currently playing the same message, pause it
-      if (currentPlayingVoice === messageId && voicePlayer.playing) {
-        voicePlayer.pause();
+      if (currentPlayingVoice === messageId && isPlaying) {
+        try {
+          if (voicePlayer && currentVoiceUri) {
+            voicePlayer.pause();
+          }
+        } catch (pauseError) {
+          console.log('Note: Player already stopped or released');
+        }
+        // Update state immediately for instant UI feedback
+        setIsPlaying(false);
         setCurrentPlayingVoice(null);
+        setCurrentVoiceUri(null);
         return;
       }
 
-      // Set up audio mode for playback
+      console.log('▶️ Playing voice message:', messageId, fileUrl);
+      
+      // Optimistically update UI immediately - show pause icon right away
+      setCurrentPlayingVoice(messageId);
+      setIsPlaying(true); // Set to true immediately for instant icon change
+      
+      // Stop any currently playing sound
+      if (currentVoiceUri && currentPlayingVoice !== messageId) {
+        try {
+          if (voicePlayer && voicePlayer.playing) {
+            voicePlayer.pause();
+          }
+        } catch (pauseError) {
+          console.log('Note: Previous player already stopped or released');
+        }
+        // Clear state to release previous player
+        setCurrentVoiceUri(null);
+        // Small delay to ensure state is cleared and player is released
+        await new Promise(resolve => setTimeout(resolve, 200));
+      }
+      
+      // CRITICAL: Set up audio mode for playback (not recording)
+      // This ensures audio plays through speakers/headphones
       await setAudioModeAsync({
         allowsRecording: false,
         playsInSilentMode: true,
       });
-
-      // Set the current voice URI and play
-      setCurrentVoiceUri(fileUrl);
-      setCurrentPlayingVoice(messageId);
       
-      // Replace the source and play
-      voicePlayer.replace({ uri: fileUrl });
-      voicePlayer.play();
-    } catch (error) {
-      console.error('Error playing voice message:', error);
+      console.log('✅ Audio mode set for playback');
+
+      // Ensure fileUrl is a full URL (prepend API base URL if it's a relative path)
+      let fullFileUrl = fileUrl;
+      if (fileUrl && !fileUrl.startsWith('http://') && !fileUrl.startsWith('https://')) {
+        const apiConfig = require('../config/api').getApiConfig();
+        fullFileUrl = `${apiConfig.BASE_URL}${fileUrl.startsWith('/') ? '' : '/'}${fileUrl}`;
+        console.log('🔗 Converted relative URL to full URL:', fullFileUrl);
+      }
+
+      // Set the current voice URI - this will create a new player instance via useAudioPlayer hook
+      setCurrentVoiceUri(fullFileUrl);
+      
+      // Don't use replace() - let the hook create a new player instance
+      // We'll use an effect to auto-play when the new player is ready
+    } catch (error: any) {
+      console.error('❌ Error playing voice message:', error);
+      console.error('❌ Error details:', {
+        message: error?.message,
+        name: error?.name,
+        fileUrl: fileUrl,
+      });
+      
+      // Reset state on error
+      setCurrentPlayingVoice(null);
+      setCurrentVoiceUri(null);
+      setIsPlaying(false);
+      
       setFeedbackModal({
         visible: true,
         type: 'error',
         title: 'Erreur',
-        message: 'Impossible de lire le message vocal',
+        message: `Impossible de lire le message vocal: ${error?.message || 'Erreur inconnue'}`,
         onConfirm: () => setFeedbackModal(prev => ({ ...prev, visible: false })),
       });
     }
@@ -1015,7 +1161,7 @@ export default function PatientProfileScreen() {
                           onPress={() => handlePlayVoiceMessage(message.id, message.fileUrl)}
                         >
                           <Ionicons
-                            name={currentPlayingVoice === message.id ? 'pause-circle' : 'play-circle'}
+                            name={currentPlayingVoice === message.id && isPlaying ? 'pause-circle' : 'play-circle'}
                             size={40}
                             color="#4facfe"
                           />

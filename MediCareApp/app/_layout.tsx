@@ -96,10 +96,11 @@ export default function RootLayout() {
 
       console.log('🔔 Notifee event:', EventType[type], pressAction?.id);
 
-      // Handle full-screen action - navigate to alarm screen
+      // Handle full-screen action - navigate to alarm screen automatically when delivered
+      // This ensures the alarm shows immediately when notification is delivered, not just on tap
       if (type === EventType.DELIVERED || type === EventType.PRESS) {
         if (notification.data.type === 'medication_alarm') {
-          console.log('💊 Navigating to medication alarm screen');
+          console.log('💊 Medication alarm delivered - navigating to alarm screen automatically');
           router.push({
             pathname: '/medication-alarm',
             params: {

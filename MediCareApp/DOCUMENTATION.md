@@ -63,7 +63,7 @@
 - **Language**: TypeScript
 - **Database**: PostgreSQL with Prisma ORM
 - **Authentication**: JWT (JSON Web Tokens)
-- **SMS Service**: Twilio Integration
+- **SMS Service**: 
 
 #### Native Modules (Android)
 - **Language**: Kotlin
@@ -128,19 +128,10 @@
 
 **Color Theme**: 🟢 Green (#10B981)
 
-**Screenshot Placeholder**:
-```
-┌──────────────────────────────────────┐
-│                                      │
-│     [INSERT PATIENT DASHBOARD        │
-│          SCREENSHOT HERE]            │
-│                                      │
-│     File: screenshots/patient-       │
-│           dashboard.png              │
-│                                      │
-└──────────────────────────────────────┘
-```
+**Screenshot**:
 
+<img src="./screenshots/patient-dashboard.jpg" alt="Patient Dashboard" width="250"/>
+  
 ### 3.2 Doctor Role
 
 **Description**: Healthcare professionals who manage patients and create prescriptions.
@@ -155,18 +146,9 @@
 
 **Color Theme**: 🔵 Blue (#4facfe)
 
-**Screenshot Placeholder**:
-```
-┌──────────────────────────────────────┐
-│                                      │
-│     [INSERT DOCTOR DASHBOARD         │
-│          SCREENSHOT HERE]            │
-│                                      │
-│     File: screenshots/doctor-        │
-│           dashboard.png              │
-│                                      │
-└──────────────────────────────────────┘
-```
+**Screenshot**:
+
+<img src="./screenshots/doctor-dashboard.jpg" alt="Doctor Dashboard" width="250"/>
 
 ### 3.3 Tutor/Caregiver Role
 
@@ -181,18 +163,9 @@
 
 **Color Theme**: 🔵 Blue (#4facfe)
 
-**Screenshot Placeholder**:
-```
-┌──────────────────────────────────────┐
-│                                      │
-│     [INSERT TUTOR DASHBOARD          │
-│          SCREENSHOT HERE]            │
-│                                      │
-│     File: screenshots/tutor-         │
-│           dashboard.png              │
-│                                      │
-└──────────────────────────────────────┘
-```
+**Screenshot**:
+
+<img src="./screenshots/doctor-dashboard.jpg" alt="Tutor Dashboard" width="250"/>
 
 ---
 
@@ -209,17 +182,9 @@ The application supports authentication via email/password with optional SMS ver
 4. Token stored in AsyncStorage
 5. User redirected to role-specific dashboard
 
-**Screenshot Placeholder**:
-```
-┌──────────────────────────────────────┐
-│                                      │
-│     [INSERT LOGIN SCREEN             │
-│          SCREENSHOT HERE]            │
-│                                      │
-│     File: screenshots/login.png      │
-│                                      │
-└──────────────────────────────────────┘
-```
+**Screenshot**:
+
+<img src="./screenshots/login.jpg" alt="Login Screen" width="250"/>
 
 ### 4.2 Registration Flow
 
@@ -240,17 +205,9 @@ The application supports authentication via email/password with optional SMS ver
 | Password | Min 8 characters |
 | Date of Birth | Required for patients |
 
-**Screenshot Placeholder**:
-```
-┌──────────────────────────────────────┐
-│                                      │
-│     [INSERT REGISTRATION SCREEN      │
-│          SCREENSHOT HERE]            │
-│                                      │
-│     File: screenshots/register.png   │
-│                                      │
-└──────────────────────────────────────┘
-```
+**Screenshot**:
+
+<img src="./screenshots/register.jpg" alt="Registration Screen" width="250"/>
 
 ### 4.3 Password Recovery
 
@@ -261,30 +218,11 @@ The application supports authentication via email/password with optional SMS ver
 4. Code verified by backend
 5. User sets new password
 
-**Screenshot Placeholder**:
-```
-┌──────────────────────────────────────┐
-│                                      │
-│     [INSERT FORGOT PASSWORD          │
-│          SCREENSHOT HERE]            │
-│                                      │
-│     File: screenshots/forgot-        │
-│           password.png               │
-│                                      │
-└──────────────────────────────────────┘
-```
+**Screenshots**:
 
-```
-┌──────────────────────────────────────┐
-│                                      │
-│     [INSERT VERIFICATION CODE        │
-│          SCREENSHOT HERE]            │
-│                                      │
-│     File: screenshots/verify-        │
-│           code.png                   │
-│                                      │
-└──────────────────────────────────────┘
-```
+<img src="./screenshots/forgot-password.jpg" alt="Forgot Password" width="250"/>
+
+<img src="./screenshots/verify-code.jpg" alt="Verification Code" width="250"/>
 
 ---
 
@@ -304,24 +242,14 @@ The patient dashboard provides a clear overview of daily medications and adheren
 **Medication Status Colors**:
 | Status | Color | Description |
 |--------|-------|-------------|
-| Pending | 🔵 Blue | Medication scheduled for later |
+| Pending | 🔵 orange | Medication scheduled for later |
 | Taken | 🟢 Green | Medication confirmed as taken |
 | Missed | 🔴 Red | Medication time passed without confirmation |
 | Scheduled | ⚪ Gray | Future medication |
 
-**Screenshot Placeholder**:
-```
-┌──────────────────────────────────────┐
-│                                      │
-│     [INSERT PATIENT DASHBOARD        │
-│       WITH MEDICATIONS               │
-│          SCREENSHOT HERE]            │
-│                                      │
-│     File: screenshots/patient-       │
-│           medications.png            │
-│                                      │
-└──────────────────────────────────────┘
-```
+**Screenshot**:
+
+<img src="./screenshots/patient-medications.jpg" alt="Patient Dashboard with Medications" width="250"/>
 
 ### 5.2 Medication Confirmation
 
@@ -331,18 +259,9 @@ The patient dashboard provides a clear overview of daily medications and adheren
 - Confirmation synced to server when online
 - Queued for sync when offline
 
-**Screenshot Placeholder**:
-```
-┌──────────────────────────────────────┐
-│                                      │
-│     [INSERT MEDICATION CONFIRM       │
-│          MODAL SCREENSHOT HERE]      │
-│                                      │
-│     File: screenshots/confirm-       │
-│           medication.png             │
-│                                      │
-└──────────────────────────────────────┘
-```
+**Screenshot**:
+
+<img src="./screenshots/confirm-medication.jpg" alt="Medication Confirmation" width="250"/>
 
 ### 5.3 Patient Profile
 
@@ -353,18 +272,11 @@ The patient dashboard provides a clear overview of daily medications and adheren
 - Privacy policy and terms
 - Logout functionality
 
-**Screenshot Placeholder**:
-```
-┌──────────────────────────────────────┐
-│                                      │
-│     [INSERT PATIENT PROFILE          │
-│          SCREENSHOT HERE]            │
-│                                      │
-│     File: screenshots/patient-       │
-│           profile.png                │
-│                                      │
-└──────────────────────────────────────┘
-```
+**Screenshots**:
+
+<img src="./screenshots/patient-profile.jpg" alt="Patient Profile" width="250"/>
+
+<img src="./screenshots/edit-profile.jpg" alt="Edit Profile" width="250"/>
 
 ---
 
@@ -380,18 +292,9 @@ The doctor dashboard provides an overview of all patients and medication alerts.
 - **Search Functionality**: Filter patients by name
 - **Quick Actions**: View patient profile, add prescription
 
-**Screenshot Placeholder**:
-```
-┌──────────────────────────────────────┐
-│                                      │
-│     [INSERT DOCTOR DASHBOARD         │
-│       FULL VIEW SCREENSHOT HERE]     │
-│                                      │
-│     File: screenshots/doctor-        │
-│           dashboard-full.png         │
-│                                      │
-└──────────────────────────────────────┘
-```
+**Screenshot**:
+
+<img src="./screenshots/doctor-dashboard.jpg" alt="Doctor Dashboard Full View" width="250"/>
 
 ### 6.2 Patient Management
 
@@ -409,18 +312,9 @@ The doctor dashboard provides an overview of all patients and medication alerts.
 - Email (optional)
 - Date of Birth
 
-**Screenshot Placeholder**:
-```
-┌──────────────────────────────────────┐
-│                                      │
-│     [INSERT ADD PATIENT              │
-│          SCREENSHOT HERE]            │
-│                                      │
-│     File: screenshots/add-           │
-│           patient.png                │
-│                                      │
-└──────────────────────────────────────┘
-```
+**Screenshot**:
+
+<img src="./screenshots/add-patient.jpg" alt="Add Patient" width="250"/>
 
 #### Patient Profile View
 
@@ -431,18 +325,9 @@ The doctor dashboard provides an overview of all patients and medication alerts.
 - Adherence statistics
 - Medication history
 
-**Screenshot Placeholder**:
-```
-┌──────────────────────────────────────┐
-│                                      │
-│     [INSERT PATIENT PROFILE          │
-│       (DOCTOR VIEW) SCREENSHOT]      │
-│                                      │
-│     File: screenshots/patient-       │
-│           profile-doctor.png         │
-│                                      │
-└──────────────────────────────────────┘
-```
+**Screenshot**:
+
+<img src="./screenshots/patient-profile.jpg" alt="Patient Profile (Doctor View)" width="250"/>
 
 ### 6.3 Prescription Management
 
@@ -463,18 +348,9 @@ The doctor dashboard provides an overview of all patients and medication alerts.
 - Add multiple times per day
 - Set repeat frequency (weekly)
 
-**Screenshot Placeholder**:
-```
-┌──────────────────────────────────────┐
-│                                      │
-│     [INSERT ADD PRESCRIPTION         │
-│          SCREENSHOT HERE]            │
-│                                      │
-│     File: screenshots/add-           │
-│           prescription.png           │
-│                                      │
-└──────────────────────────────────────┘
-```
+**Screenshot**:
+
+<img src="./screenshots/add-prescription.jpg" alt="Add Prescription" width="250"/>
 
 ### 6.4 Medication Alerts
 
@@ -483,17 +359,9 @@ The doctor dashboard provides an overview of all patients and medication alerts.
 - **No Response**: Multiple missed medications
 - **Adherence Drop**: Significant decrease in adherence rate
 
-**Screenshot Placeholder**:
-```
-┌──────────────────────────────────────┐
-│                                      │
-│     [INSERT MEDICATION ALERTS        │
-│          SCREENSHOT HERE]            │
-│                                      │
-│     File: screenshots/alerts.png     │
-│                                      │
-└──────────────────────────────────────┘
-```
+**Screenshot**:
+
+<img src="./screenshots/not-taken.jpg" alt="Medication Alerts" width="250"/>
 
 ---
 
@@ -529,60 +397,50 @@ The native alarm system is a custom Android implementation that provides full-sc
 │                        ALARM TRIGGER FLOW                       │
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                 │
-│  1. AlarmManager triggers at scheduled time                    │
+│  1. AlarmManager triggers at scheduled time                     │
 │                    │                                            │
 │                    ▼                                            │
-│  2. AlarmReceiver receives broadcast                           │
+│  2. AlarmReceiver receives broadcast                            │
 │                    │                                            │
-│                    ├──► Acquire WAKE_LOCK (turn on screen)     │
+│                    ├──► Acquire WAKE_LOCK (turn on screen)      │
 │                    │                                            │
 │                    ▼                                            │
-│  3. Start AlarmService (foreground)                            │
+│  3. Start AlarmService (foreground)                             │
 │                    │                                            │
-│                    ├──► Create notification channel            │
+│                    ├──► Create notification channel             │
 │                    ├──► Start foreground with notification      │
 │                    ├──► Play audio (voice message or default)   │
 │                    │                                            │
 │                    ▼                                            │
-│  4. Launch AlarmActivity                                       │
+│  4. Launch AlarmActivity                                        │
 │                    │                                            │
 │                    ├──► Show over lock screen                   │
 │                    ├──► Display medication info                 │
 │                    ├──► Start vibration                         │
 │                    │                                            │
 │                    ▼                                            │
-│  5. User Action                                                │
+│  5. User Action                                                 │
 │                    │                                            │
-│          ┌────────┴────────┐                                   │
+│          ┌────────┴────────┐                                    │
 │          │                 │                                    │
 │          ▼                 ▼                                    │
-│     [CONFIRM]          [SNOOZE]                                │
+│     [CONFIRM]          [SNOOZE]                                 │
 │          │                 │                                    │
 │          ▼                 ▼                                    │
-│   Stop alarm &       Reschedule for                            │
-│   mark as taken      5 minutes later                           │
+│   Stop alarm &       Reschedule for                             │
+│   mark as taken      5 minutes later                            │
 │                                                                 │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
 ### 7.4 Alarm Activity UI
 
-**Screenshot Placeholder**:
-```
-┌──────────────────────────────────────┐
-│                                      │
-│     [INSERT ALARM ACTIVITY           │
-│          SCREENSHOT HERE]            │
-│                                      │
-│     File: screenshots/alarm-         │
-│           activity.png               │
-│                                      │
-└──────────────────────────────────────┘
-```
+**Screenshot**:
+
+<img src="./screenshots/alarm-actvity.jpg" alt="Alarm Activity" width="250"/>
 
 **UI Elements**:
 - Dark theme background (#1a1a2e)
-- Large pill icon with green circle
 - Current time display (large font)
 - Medication card with name and dosage
 - Snooze button (orange, 5 minutes)
@@ -626,18 +484,9 @@ Doctors can record personalized voice messages that play when medication reminde
 5. Voice message uploaded to server
 6. Can be attached to prescriptions
 
-**Screenshot Placeholder**:
-```
-┌──────────────────────────────────────┐
-│                                      │
-│     [INSERT VOICE RECORDER           │
-│          SCREENSHOT HERE]            │
-│                                      │
-│     File: screenshots/voice-         │
-│           recorder.png               │
-│                                      │
-└──────────────────────────────────────┘
-```
+**Screenshot**:
+
+<img src="./screenshots/voice-recorder.jpg" alt="Voice Recorder" width="250"/>
 
 ### 8.3 Voice Message Playback
 
@@ -682,18 +531,9 @@ MediCare+ is designed to work even without internet connectivity, ensuring patie
 5. Voice messages downloaded and cached
 6. Pending confirmations synced to server
 
-**Screenshot Placeholder**:
-```
-┌──────────────────────────────────────┐
-│                                      │
-│     [INSERT OFFLINE MODE             │
-│       INDICATOR SCREENSHOT]          │
-│                                      │
-│     File: screenshots/offline-       │
-│           mode.png                   │
-│                                      │
-└──────────────────────────────────────┘
-```
+**Screenshot**:
+
+<img src="./screenshots/offline-mode.jpg" alt="Offline Mode Indicator" width="250"/>
 
 ---
 
@@ -722,7 +562,7 @@ MediCare+ is designed to work even without internet connectivity, ensuring patie
 | Node.js | v18 or higher |
 | PostgreSQL | v14 or higher |
 | Memory | 512 MB minimum |
-| Storage | 10 GB for voice messages |
+| Storage | 1 GB for voice messages |
 
 ### 10.3 Network Requirements
 
@@ -754,8 +594,8 @@ MediCare+ is designed to work even without internet connectivity, ensuring patie
 
 - **Data Minimization**: Only essential data collected
 - **Consent**: Explicit consent for data processing
-- **Right to Delete**: Account deletion available
-- **GDPR Compliant**: European privacy standards
+
+
 
 ---
 
@@ -870,68 +710,22 @@ eas build --platform ios --profile production
 | Sync failing | Verify internet connection and server status |
 | Login failing | Check email/password, try password reset |
 
-### 14.2 Debug Mode
 
-Enable debug logging by:
-1. Open app settings
-2. Enable "Developer Mode"
-3. Check logs in Metro bundler
 
----
-
-## 15. Version History
-
-| Version | Date | Changes |
-|---------|------|---------|
-| 1.0.0 | Dec 2024 | Initial release |
-| 1.1.0 | Dec 2024 | Added native alarm system |
-| 1.2.0 | Dec 2024 | Voice message support |
-| 1.3.0 | Dec 2024 | Offline mode + UI improvements |
 
 ---
 
 ## 16. Screenshots Gallery
 
 ### Landing Page
-```
-┌──────────────────────────────────────┐
-│                                      │
-│     [INSERT LANDING PAGE             │
-│          SCREENSHOT HERE]            │
-│                                      │
-│     File: screenshots/landing.png    │
-│                                      │
-└──────────────────────────────────────┘
-```
 
-### Full Application Flow
-```
-┌─────────┐    ┌─────────┐    ┌─────────┐    ┌─────────┐
-│ Landing │───►│  Login  │───►│Dashboard│───►│ Profile │
-│  Page   │    │  Screen │    │  Screen │    │  Screen │
-└─────────┘    └─────────┘    └─────────┘    └─────────┘
-     │
-     ▼
-┌─────────┐    ┌─────────┐    ┌─────────┐
-│Register │───►│ Verify  │───►│Dashboard│
-│ Screen  │    │  Code   │    │  Screen │
-└─────────┘    └─────────┘    └─────────┘
-```
+<img src="./screenshots/landing-page.jpg" alt="Landing Page" width="250"/>
 
----
 
-## 17. Contact & Support
 
-**Development Team**: MediCare+ Team
 
-**Repository**: https://github.com/Adem-abderrazek/MedicareApp
 
-**Backend Repository**: https://github.com/Adem-abderrazek/med
 
----
 
-*Document Version: 1.0*
-*Last Updated: December 2024*
-*© 2024 MediCare+ - All Rights Reserved*
 
 

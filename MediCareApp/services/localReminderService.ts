@@ -38,6 +38,8 @@ type StoredReminder = {
   notificationId: string;
   medicationName: string;
   dosage: string;
+  prescriptionId?: string;
+  patientId?: string;
 };
 
 
@@ -76,11 +78,29 @@ async function downloadVoiceMessage(reminder: LocalReminder): Promise<string | n
       return localPath;
     }
 
+    // Convert relative URL to absolute URL if needed
+    let downloadUrl = reminder.voiceUrl;
+    if (downloadUrl.startsWith('/')) {
+      // Relative URL - prepend base URL
+      const { getApiConfig } = await import('../config/api');
+      const apiConfig = getApiConfig();
+      // Remove /api from base URL and add the relative path
+      const baseUrl = apiConfig.BASE_URL.replace('/api', '');
+      downloadUrl = `${baseUrl}${reminder.voiceUrl}`;
+    } else if (!downloadUrl.startsWith('http://') && !downloadUrl.startsWith('https://')) {
+      // Not a valid URL - try to construct it
+      const { getApiConfig } = await import('../config/api');
+      const apiConfig = getApiConfig();
+      const baseUrl = apiConfig.BASE_URL.replace('/api', '');
+      downloadUrl = `${baseUrl}${reminder.voiceUrl.startsWith('/') ? '' : '/'}${reminder.voiceUrl}`;
+    }
+
     console.log(`⬇️ Downloading voice for ${reminder.medicationName}...`);
-    console.log(`   URL: ${reminder.voiceUrl}`);
+    console.log(`   Original URL: ${reminder.voiceUrl}`);
+    console.log(`   Download URL: ${downloadUrl}`);
     console.log(`   Local: ${localPath}`);
 
-    const downloadResult = await FileSystem.downloadAsync(reminder.voiceUrl, localPath);
+    const downloadResult = await FileSystem.downloadAsync(downloadUrl, localPath);
 
     if (downloadResult.status === 200) {
       console.log(`✅ Voice downloaded: ${localFileName}`);
@@ -161,13 +181,20 @@ export async function scheduleReminder(reminder: LocalReminder): Promise<string>
         audioPath: audioPath,
       });
 
+      // Ensure prescriptionId is always saved for proper audio retrieval on snooze
+      if (!reminder.prescriptionId) {
+        console.warn(`⚠️ Warning: prescriptionId is missing for reminder ${reminder.reminderId}`);
+      }
+      
       await saveReminder(reminder.reminderId, {
         notificationId: reminder.reminderId,
         medicationName: reminder.medicationName,
         dosage: reminder.dosage,
+        prescriptionId: reminder.prescriptionId, // ✅ Always save prescriptionId
+        patientId: reminder.patientId,
       });
 
-      console.log(`✅ Reminder scheduled via native alarm: ${result.alarmId}`);
+      console.log(`✅ Reminder scheduled via native alarm: ${result.alarmId} (prescriptionId: ${reminder.prescriptionId || 'missing'})`);
       return result.alarmId;
     } catch (error) {
       console.error('❌ Failed to schedule native alarm, falling back to expo-notifications:', error);
@@ -194,13 +221,20 @@ export async function scheduleReminder(reminder: LocalReminder): Promise<string>
     trigger: { type: 'date', date: scheduledDate } as any,
   });
 
+  // Ensure prescriptionId is always saved for proper audio retrieval on snooze
+  if (!reminder.prescriptionId) {
+    console.warn(`⚠️ Warning: prescriptionId is missing for reminder ${reminder.reminderId}`);
+  }
+  
   await saveReminder(reminder.reminderId, {
     notificationId,
     medicationName: reminder.medicationName,
     dosage: reminder.dosage,
+    prescriptionId: reminder.prescriptionId, // ✅ Always save prescriptionId
+    patientId: reminder.patientId,
   });
 
-  console.log(`✅ Reminder scheduled via Expo notifications, ID: ${notificationId}`);
+  console.log(`✅ Reminder scheduled via Expo notifications, ID: ${notificationId} (prescriptionId: ${reminder.prescriptionId || 'missing'})`);
   return notificationId;
 }
 
@@ -237,12 +271,58 @@ export async function checkForUpdates(token: string): Promise<{ hasUpdates: bool
   try {
     console.log('🔄 Checking for updates...');
 
+    // Get reminders from server
     const response = await apiService.getUpcomingReminders(token);
-    const reminders = (response.data as LocalReminder[]) || [];
+    const serverReminders = (response.data as LocalReminder[]) || [];
+    console.log(`📥 Server has ${serverReminders.length} reminders`);
 
-    console.log(`✅ Found ${reminders.length} reminders`);
+    // Get locally stored reminders
+    const localReminders = await loadReminders();
+    const localReminderIds = new Set(Object.keys(localReminders));
+    console.log(`💾 Local storage has ${localReminderIds.size} reminders`);
 
-    return { hasUpdates: reminders.length > 0, lastModified: new Date().toISOString() };
+    // Create a map of server reminders by reminderId for easy lookup
+    const serverReminderMap = new Map<string, LocalReminder>();
+    serverReminders.forEach(reminder => {
+      serverReminderMap.set(reminder.reminderId, reminder);
+    });
+
+    const serverReminderIds = new Set(serverReminders.map(r => r.reminderId));
+
+    // Check for new reminders (in server but not in local)
+    const newReminders = serverReminders.filter(r => !localReminderIds.has(r.reminderId));
+    
+    // Check for deleted reminders (in local but not in server)
+    const deletedReminders = Array.from(localReminderIds).filter(id => !serverReminderIds.has(id));
+    
+    // Check for changed reminders (same ID but different key data)
+    const changedReminders: LocalReminder[] = [];
+    serverReminders.forEach(serverReminder => {
+      if (localReminderIds.has(serverReminder.reminderId)) {
+        const localReminder = localReminders[serverReminder.reminderId];
+        // Compare key fields that would indicate a change
+        if (
+          localReminder.medicationName !== serverReminder.medicationName ||
+          localReminder.dosage !== serverReminder.dosage ||
+          localReminder.prescriptionId !== serverReminder.prescriptionId
+        ) {
+          changedReminders.push(serverReminder);
+        }
+      }
+    });
+
+    const hasUpdates = newReminders.length > 0 || deletedReminders.length > 0 || changedReminders.length > 0;
+
+    if (hasUpdates) {
+      console.log(`⚠️ Updates detected: ${newReminders.length} new, ${deletedReminders.length} deleted, ${changedReminders.length} changed`);
+    } else {
+      console.log('✅ No updates - local and server reminders match');
+    }
+
+    return { 
+      hasUpdates, 
+      lastModified: hasUpdates ? new Date().toISOString() : null 
+    };
   } catch (error) {
     console.error('❌ Error checking for updates:', error);
     return { hasUpdates: false, lastModified: null };
@@ -312,20 +392,61 @@ export async function snoozeReminderLocally(reminderId: string): Promise<void> {
     if (useNativeAlarms) {
       try {
         const snoozeAlarmId = `${reminderId}_snooze_${Date.now()}`;
+        
+        // Get the audio path for this reminder (voice message from doctor)
+        // Try to get prescriptionId from stored reminder
+        let prescriptionId = stored.prescriptionId;
+        
+        if (!prescriptionId) {
+          console.warn(`⚠️ PrescriptionId missing for reminder ${reminderId}, attempting to find from voice messages...`);
+          // Try to find prescriptionId by checking all voice messages
+          // This is a fallback in case prescriptionId wasn't saved properly
+          try {
+            const voiceMessagesStr = await AsyncStorage.getItem(STORAGE_KEYS.VOICE_MESSAGES);
+            if (voiceMessagesStr) {
+              const voiceMessages = JSON.parse(voiceMessagesStr);
+              // Try to find a matching prescriptionId by checking reminder patterns
+              // This is not ideal but better than no audio
+              for (const [prescId, path] of Object.entries(voiceMessages)) {
+                // If we can't match, we'll just try the first one as last resort
+                // Better approach: ensure prescriptionId is always saved
+                if (Object.keys(voiceMessages).length === 1) {
+                  prescriptionId = prescId;
+                  console.log(`🔍 Found prescriptionId from voice messages: ${prescriptionId}`);
+                  break;
+                }
+              }
+            }
+          } catch (error) {
+            console.error('Error trying to find prescriptionId from voice messages:', error);
+          }
+        }
+        
+        const audioPath = await getVoiceMessagePath(prescriptionId || '');
+        
+        if (audioPath) {
+          console.log(`🎵 Snooze audio path found: ${audioPath}`);
+        } else {
+          console.warn(`⚠️ No audio path found for snooze (prescriptionId: ${prescriptionId || 'missing'})`);
+        }
+        
         await alarmService.scheduleAlarm({
           alarmId: snoozeAlarmId,
           triggerTime: snoozeTime,
           medicationName: stored.medicationName,
           dosage: stored.dosage,
-          instructions: 'Rappel (Snooze)',
-          reminderId: reminderId,
-          patientId: '',
+          instructions: stored.instructions || 'Rappel (Snooze)',
+          reminderId: reminderId, // Keep original reminder ID for confirmation
+          patientId: stored.patientId || '',
+          audioPath: audioPath, // ✅ Include audio path for snooze (may be null, AlarmService will handle fallback)
         });
 
         reminders[reminderId] = {
           notificationId: snoozeAlarmId,
           medicationName: stored.medicationName,
           dosage: stored.dosage,
+          prescriptionId: stored.prescriptionId,
+          patientId: stored.patientId,
         };
 
         await persistReminders(reminders);
@@ -358,6 +479,8 @@ export async function snoozeReminderLocally(reminderId: string): Promise<void> {
       notificationId,
       medicationName: stored.medicationName,
       dosage: stored.dosage,
+      prescriptionId: stored.prescriptionId,
+      patientId: stored.patientId,
     };
 
     await persistReminders(reminders);

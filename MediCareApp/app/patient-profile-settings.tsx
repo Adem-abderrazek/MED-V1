@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { useFocusEffect } from 'expo-router';
 import {
   View,
   Text,
@@ -111,6 +112,16 @@ export default function PatientProfileSettingsScreen() {
   useEffect(() => {
     loadProfile();
   }, [loadProfile]);
+
+  // Reload profile when screen comes into focus (e.g., after editing)
+  useFocusEffect(
+    useCallback(() => {
+      console.log('📱 Profile settings screen focused - refreshing data...');
+      if (token) {
+        loadProfile();
+      }
+    }, [token, loadProfile])
+  );
 
   const onRefresh = useCallback(() => {
     setIsRefreshing(true);

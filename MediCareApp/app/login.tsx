@@ -220,7 +220,7 @@ export default function LoginScreen() {
               </View>
               <TextInput
                 style={styles.input}
-                placeholder="Adresse e-mail"
+                placeholder="e-mail ou numéro de téléphone"
                 placeholderTextColor="rgba(255, 255, 255, 0.6)"
                 value={email}
                 onChangeText={setEmail}

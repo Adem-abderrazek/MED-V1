@@ -45,9 +45,18 @@ export default function VoiceRecorderModal({
       // Cleanup timer on unmount (recorder and player are auto-cleaned by hooks)
       if (timerRef.current) {
         clearInterval(timerRef.current);
+        timerRef.current = null;
       }
     };
   }, []);
+
+  // Stop timer when recording stops
+  useEffect(() => {
+    if (!recorder.isRecording && timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
+  }, [recorder.isRecording]);
 
   const startRecording = async () => {
     try {
@@ -65,26 +74,55 @@ export default function VoiceRecorderModal({
       setRecordingDuration(0);
       setRecordingUri(null);
 
+      // Clear any existing timer first
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
+
       // Start recording
       await recorder.prepareToRecordAsync();
       recorder.record();
 
-      timerRef.current = setInterval(() => {
-        setRecordingDuration((prev) => {
-          const newDuration = prev + 1;
-          actualDurationRef.current = newDuration;
-          return newDuration;
-        });
-      }, 1000);
+      // Start timer only if recording actually started
+      // Use a small delay to ensure recorder.isRecording is updated
+      setTimeout(() => {
+        if (recorder.isRecording && !timerRef.current) {
+          timerRef.current = setInterval(() => {
+            // Double-check recording is still active
+            if (recorder.isRecording) {
+              setRecordingDuration((prev) => {
+                const newDuration = prev + 1;
+                actualDurationRef.current = newDuration;
+                return newDuration;
+              });
+            } else {
+              // Stop timer if recording stopped unexpectedly
+              if (timerRef.current) {
+                clearInterval(timerRef.current);
+                timerRef.current = null;
+              }
+            }
+          }, 1000);
+        }
+      }, 100);
     } catch (err) {
       console.error('Failed to start recording:', err);
     }
   };
 
   const stopRecording = async () => {
-    if (!recorder.isRecording) return;
+    if (!recorder.isRecording) {
+      // Ensure timer is stopped even if recording already stopped
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
+      return;
+    }
 
     try {
+      // Clear timer FIRST before stopping recording
       if (timerRef.current) {
         clearInterval(timerRef.current);
         timerRef.current = null;
@@ -92,6 +130,12 @@ export default function VoiceRecorderModal({
 
       // Stop recording
       await recorder.stop();
+      
+      // Ensure timer is stopped after stopping recording (double-check)
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
       
       // Get the URI from the recorder
       const uri = recorder.uri;
@@ -132,25 +176,43 @@ export default function VoiceRecorderModal({
   };
 
   const playRecording = async () => {
-    if (!recordingUri) return;
+    if (!recordingUri) {
+      console.log('⚠️ No recording URI to play');
+      return;
+    }
 
     try {
       // If currently playing, pause it
       if (player.playing) {
+        console.log('⏸️ Pausing current playback');
         player.pause();
+        // Icon will update via player.playing state
         return;
       }
 
+      console.log('▶️ Starting playback of recording:', recordingUri);
+      
+      // CRITICAL: Set audio mode for playback (not recording)
+      // This ensures audio plays through speakers/headphones
       await setAudioModeAsync({
         allowsRecording: false,
         playsInSilentMode: true,
       });
+      
+      console.log('✅ Audio mode set for playback');
 
       // Replace source if needed and play
+      // Note: player.playing will update automatically, causing icon to change
       player.replace({ uri: recordingUri });
-      player.play();
+      await player.play();
+      console.log('✅ Playback started');
     } catch (err) {
-      console.error('Failed to play recording:', err);
+      console.error('❌ Failed to play recording:', err);
+      console.error('❌ Error details:', {
+        message: err?.message,
+        name: err?.name,
+        stack: err?.stack
+      });
     }
   };
 
@@ -299,7 +361,7 @@ export default function VoiceRecorderModal({
                 <View style={styles.playbackControls}>
                   <TouchableOpacity style={styles.controlButton} onPress={playRecording}>
                     <Ionicons
-                      name={player.playing ? 'pause' : 'play'}
+                      name={player.playing ? 'pause-circle' : 'play-circle'}
                       size={32}
                       color="#4facfe"
                     />

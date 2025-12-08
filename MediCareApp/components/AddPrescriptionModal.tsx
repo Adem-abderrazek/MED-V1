@@ -13,7 +13,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import { Audio } from 'expo-av';
+import { useAudioPlayer, setAudioModeAsync } from 'expo-audio';
 import FeedbackModal from './FeedbackModal';
 import VoiceRecorderModal from './VoiceRecorderModal';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -131,9 +131,93 @@ export default function AddPrescriptionModal({
   
   // Voice playback state
   const [playingVoiceId, setPlayingVoiceId] = useState<string | null>(null);
-  const [currentSound, setCurrentSound] = useState<Audio.Sound | null>(null);
+  const [currentVoiceUri, setCurrentVoiceUri] = useState<string | null>(null);
   const [showVoiceRecorder, setShowVoiceRecorder] = useState(false);
   const [isUploadingVoice, setIsUploadingVoice] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(false);
+  
+  // Audio player for voice messages (using expo-audio)
+  const voicePlayer = useAudioPlayer(currentVoiceUri ? { uri: currentVoiceUri } : null);
+
+  // Auto-play when a new URI is set and we have a playing voice ID
+  useEffect(() => {
+    if (!voicePlayer || !currentVoiceUri || !playingVoiceId) {
+      return;
+    }
+
+    // Auto-play when a new player instance is created with a URI
+    const playAudio = async () => {
+      try {
+        // Small delay to ensure player is fully initialized
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
+        if (voicePlayer && currentVoiceUri && !voicePlayer.playing) {
+          await voicePlayer.play();
+          // isPlaying is already set optimistically, but ensure it's true after successful play
+          setIsPlaying(true);
+          console.log('✅ Voice playback started (auto-play)');
+        }
+      } catch (error: any) {
+        console.error('❌ Error in auto-play:', error);
+        // If play fails, revert optimistic update
+        setIsPlaying(false);
+        setPlayingVoiceId(null);
+        setCurrentVoiceUri(null);
+      }
+    };
+
+    playAudio();
+  }, [currentVoiceUri, playingVoiceId]); // Only trigger when URI or playing voice changes
+
+  // Listen to player state changes to update icon
+  useEffect(() => {
+    if (!voicePlayer || !currentVoiceUri) {
+      setIsPlaying(false);
+      return;
+    }
+
+    try {
+      setIsPlaying(voicePlayer.playing);
+      
+      // Poll player state to keep UI in sync (expo-audio doesn't provide event listeners)
+      const interval = setInterval(() => {
+        try {
+          // Check if player is still valid before accessing properties
+          if (!voicePlayer || !currentVoiceUri) {
+            setIsPlaying(false);
+            if (playingVoiceId) {
+              setPlayingVoiceId(null);
+              setCurrentVoiceUri(null);
+            }
+            return;
+          }
+          
+          const currentlyPlaying = voicePlayer.playing;
+          if (currentlyPlaying !== isPlaying) {
+            setIsPlaying(currentlyPlaying);
+          }
+          // If player stopped but we still have a playingVoiceId, clear it
+          if (!currentlyPlaying && playingVoiceId) {
+            setPlayingVoiceId(null);
+            setCurrentVoiceUri(null);
+          }
+        } catch (error) {
+          // Player was released, clear state
+          console.log('Player state check error (player likely released):', error);
+          setIsPlaying(false);
+          if (playingVoiceId) {
+            setPlayingVoiceId(null);
+            setCurrentVoiceUri(null);
+          }
+        }
+      }, 100);
+      
+      return () => clearInterval(interval);
+    } catch (error) {
+      console.log('Error setting up player state listener:', error);
+      setIsPlaying(false);
+    }
+  }, [voicePlayer, isPlaying, playingVoiceId, currentVoiceUri]);
 
   useEffect(() => {
     if (visible) {
@@ -170,10 +254,20 @@ export default function AddPrescriptionModal({
       
       // ✅ FIX: Load voice message ID from existing prescription
       const voiceMessageId = (existingPrescription as any).voiceMessageId;
+      console.log('🎤 Existing prescription voiceMessageId:', voiceMessageId);
+      console.log('🎤 Available voice messages:', voiceMessages.length);
       if (voiceMessageId) {
-        console.log('🎤 Loading existing voice message ID:', voiceMessageId);
-        setSelectedVoiceMessageId(voiceMessageId);
+        // Check if the voice message exists in the list
+        const voiceExists = voiceMessages.some(v => v.id === voiceMessageId);
+        if (voiceExists) {
+          console.log('✅ Loading existing voice message ID:', voiceMessageId);
+          setSelectedVoiceMessageId(voiceMessageId);
+        } else {
+          console.log('⚠️ Voice message ID not found in available messages, setting to null');
+          setSelectedVoiceMessageId(null);
+        }
       } else {
+        console.log('ℹ️ No voice message ID in existing prescription');
         setSelectedVoiceMessageId(null);
       }
     } else if (!existingPrescription && visible) {
@@ -302,35 +396,107 @@ export default function AddPrescriptionModal({
   // Voice playback functions
   const togglePlayVoice = async (voice: VoiceMessage) => {
     try {
-      if (playingVoiceId === voice.id) {
-        // Stop current
-        await currentSound?.pauseAsync();
+      if (playingVoiceId === voice.id && (isPlaying || (voicePlayer && currentVoiceUri && voicePlayer.playing))) {
+        // Stop current - pause player first, then clear state
+        try {
+          if (voicePlayer && currentVoiceUri && voicePlayer.playing) {
+            voicePlayer.pause();
+          }
+        } catch (pauseError) {
+          // Player might already be released, that's OK
+          console.log('Note: Player already stopped or released');
+        }
+        // Update state immediately for instant UI feedback
         setPlayingVoiceId(null);
+        setCurrentVoiceUri(null);
+        setIsPlaying(false);
       } else {
         // Stop any currently playing sound
-        if (currentSound) {
-          await currentSound.unloadAsync();
+        if (currentVoiceUri) {
+          try {
+            if (voicePlayer && voicePlayer.playing) {
+              voicePlayer.pause();
+            }
+          } catch (pauseError) {
+            // Player might already be released, that's OK
+            console.log('Note: Previous player already stopped or released');
+          }
+          // Clear state to release previous player
+          setCurrentVoiceUri(null);
+          setPlayingVoiceId(null);
+          setIsPlaying(false);
+          // Small delay to ensure state is cleared and player is released before starting new playback
+          await new Promise(resolve => setTimeout(resolve, 200));
         }
         
-        // Play new voice
-        const { sound } = await Audio.Sound.createAsync(
-          { uri: voice.fileUrl },
-          { shouldPlay: true }
-        );
-        setCurrentSound(sound);
-        setPlayingVoiceId(voice.id);
+        console.log('▶️ Playing voice message:', voice.id, voice.fileUrl);
         
-        // Auto-stop when finished
-        sound.setOnPlaybackStatusUpdate((status) => {
-          if (status.isLoaded && status.didJustFinish) {
-            setPlayingVoiceId(null);
+        // Optimistically update UI immediately - show pause icon right away
+        setPlayingVoiceId(voice.id);
+        setIsPlaying(true); // Set to true immediately for instant icon change
+        
+        // Stop any currently playing sound
+        if (currentVoiceUri) {
+          try {
+            if (voicePlayer && voicePlayer.playing) {
+              voicePlayer.pause();
+            }
+          } catch (pauseError) {
+            // Player might already be released, that's OK
+            console.log('Note: Previous player already stopped or released');
           }
+          // Clear state to release previous player
+          setCurrentVoiceUri(null);
+          setIsPlaying(false);
+          // Small delay to ensure state is cleared and player is released before starting new playback
+          await new Promise(resolve => setTimeout(resolve, 200));
+        }
+        
+        // Set audio mode for playback (not recording)
+        await setAudioModeAsync({
+          allowsRecording: false,
+          playsInSilentMode: true,
         });
+        
+        console.log('✅ Audio mode set for playback');
+        
+        // Ensure fileUrl is a full URL (prepend API base URL if it's a relative path)
+        let fullFileUrl = voice.fileUrl;
+        if (voice.fileUrl && !voice.fileUrl.startsWith('http://') && !voice.fileUrl.startsWith('https://')) {
+          const apiConfig = require('../config/api').getApiConfig();
+          fullFileUrl = `${apiConfig.BASE_URL}${voice.fileUrl.startsWith('/') ? '' : '/'}${voice.fileUrl}`;
+          console.log('🔗 Converted relative URL to full URL:', fullFileUrl);
+        }
+        
+        // Set the current voice URI - this will create a new player instance via useAudioPlayer hook
+        setCurrentVoiceUri(fullFileUrl);
+        
+        // Don't use replace() - let the hook create a new player instance
+        // We'll use an effect to auto-play when the new player is ready
       }
-    } catch (error) {
-      console.error('Error playing voice:', error);
+    } catch (error: any) {
+      console.error('❌ Error playing voice:', error);
+      console.error('❌ Error details:', {
+        message: error?.message,
+        name: error?.name,
+        voiceId: voice?.id,
+        fileUrl: voice?.fileUrl,
+      });
+      setPlayingVoiceId(null);
+      setCurrentVoiceUri(null);
+      setIsPlaying(false);
     }
   };
+  
+  // Cleanup audio player when modal closes
+  // Just clear the state - the useAudioPlayer hook will handle cleanup automatically
+  useEffect(() => {
+    if (!visible && currentVoiceUri) {
+      // Clear state - this will cause the useAudioPlayer hook to clean up automatically
+      setCurrentVoiceUri(null);
+      setPlayingVoiceId(null);
+    }
+  }, [visible, currentVoiceUri]);
 
   // Handle voice recorder save
   const handleSaveVoiceMessage = async (audioUri: string, duration: number, title?: string) => {
@@ -389,14 +555,17 @@ export default function AddPrescriptionModal({
     }
   };
 
-  // Clean up sound on unmount
+  // Clean up audio player on unmount
+  // Just clear the state - the useAudioPlayer hook will handle cleanup automatically
   useEffect(() => {
     return () => {
-      if (currentSound) {
-        currentSound.unloadAsync();
+      if (currentVoiceUri) {
+        // Clear state - this will cause the useAudioPlayer hook to clean up automatically
+        setCurrentVoiceUri(null);
+        setPlayingVoiceId(null);
       }
     };
-  }, [currentSound]);
+  }, [currentVoiceUri]); // Don't include voicePlayer - just clear state
 
   const toggleDay = (scheduleIndex: number, dayIndex: number) => {
     const newSchedules = [...schedules];
@@ -495,6 +664,8 @@ export default function AddPrescriptionModal({
 
     try {
       const prescriptionData = {
+        // Include prescription ID if editing (so parent knows to update, not create)
+        id: existingPrescription?.id,
         medicationName,
         medicationGenericName: selectedMedication?.genericName,
         medicationDosage: selectedMedication?.dosage,
@@ -769,73 +940,23 @@ export default function AddPrescriptionModal({
                 />
               </View>
 
-              {/* Voice Message Selector (optional) */}
-              {voiceMessages.length > 0 && (
-                <View style={styles.section}>
-                  <View style={styles.sectionHeader}>
-                    <Ionicons name="mic" size={20} color="#4facfe" />
-                    <Text style={styles.sectionTitle}>MESSAGE VOCAL (Optionnel)</Text>
-                  </View>
-                  <Text style={styles.sectionSubtitle}>
-                    Choisissez un message vocal spécifique pour ce médicament
-                  </Text>
-                  
-                  <View style={styles.voiceOptionsContainer}>
-                    {/* No Voice Option */}
-                    <TouchableOpacity
-                      style={[
-                        styles.voiceOption,
-                        selectedVoiceMessageId === null && styles.voiceOptionSelected
-                      ]}
-                      onPress={() => setSelectedVoiceMessageId(null)}
-                    >
-                      <View style={styles.voiceOptionContent}>
-                        <Ionicons 
-                          name={selectedVoiceMessageId === null ? "radio-button-on" : "radio-button-off"} 
-                          size={20} 
-                          color={selectedVoiceMessageId === null ? "#4facfe" : "rgba(255, 255, 255, 0.6)"} 
-                        />
-                        <Text style={styles.voiceOptionText}>Aucun message vocal</Text>
-                      </View>
-                    </TouchableOpacity>
-
-                    {/* Voice Message Options */}
-                    {voiceMessages.map((voice) => (
-                      <View
-                        key={voice.id}
-                        style={[
-                          styles.voiceOption,
-                          selectedVoiceMessageId === voice.id && styles.voiceOptionSelected
-                        ]}
-                      >
-                        <TouchableOpacity
-                          style={styles.voiceOptionSelector}
-                          onPress={() => setSelectedVoiceMessageId(voice.id)}
-                        >
-                          <Ionicons 
-                            name={selectedVoiceMessageId === voice.id ? "radio-button-on" : "radio-button-off"} 
-                            size={20} 
-                            color={selectedVoiceMessageId === voice.id ? "#4facfe" : "rgba(255, 255, 255, 0.6)"} 
-                          />
-                          <Text style={styles.voiceOptionText}>{voice.title || voice.fileName}</Text>
-                        </TouchableOpacity>
-                        
-                        <TouchableOpacity
-                          style={styles.voicePlayButton}
-                          onPress={() => togglePlayVoice(voice)}
-                        >
-                          <Ionicons 
-                            name={playingVoiceId === voice.id ? "pause-circle" : "play-circle"} 
-                            size={32} 
-                            color="#4facfe" 
-                          />
-                        </TouchableOpacity>
-                      </View>
-                    ))}
-                    
-                    {/* Add New Voice Button */}
+              {/* Voice Message Selector (optional) - Always show, even if no messages exist */}
+              <View style={styles.section}>
+                <View style={styles.sectionHeader}>
+                  <Ionicons name="mic" size={20} color="#4facfe" />
+                  <Text style={styles.sectionTitle}>MESSAGE VOCAL (Optionnel)</Text>
+                </View>
+                <Text style={styles.sectionSubtitle}>
+                  {voiceMessages.length > 0 
+                    ? 'Choisissez un message vocal spécifique pour ce médicament'
+                    : 'Enregistrez un message vocal pour ce médicament'}
+                </Text>
+                
+                <View style={styles.voiceOptionsContainer}>
+                  {voiceMessages.length === 0 ? (
+                    /* No voice messages - Show prominent "Add Record" button */
                     <TouchableOpacity 
-                      style={styles.addNewVoiceButton}
+                      style={styles.addNewVoiceButtonEmpty}
                       onPress={() => setShowVoiceRecorder(true)}
                       disabled={isUploadingVoice}
                     >
@@ -843,14 +964,86 @@ export default function AddPrescriptionModal({
                         <ActivityIndicator size="small" color="#4facfe" />
                       ) : (
                         <>
-                          <Ionicons name="add-circle" size={20} color="#4facfe" />
-                          <Text style={styles.addNewVoiceText}>Enregistrer un nouveau message</Text>
+                          <Ionicons name="mic-circle" size={32} color="#4facfe" />
+                          <Text style={styles.addNewVoiceTextEmpty}>Enregistrer un message vocal</Text>
+                          <Text style={styles.addNewVoiceSubtext}>Appuyez pour commencer l'enregistrement</Text>
                         </>
                       )}
                     </TouchableOpacity>
-                  </View>
+                  ) : (
+                    /* Has voice messages - Show selection options */
+                    <>
+                      {/* No Voice Option */}
+                      <TouchableOpacity
+                        style={[
+                          styles.voiceOption,
+                          selectedVoiceMessageId === null && styles.voiceOptionSelected
+                        ]}
+                        onPress={() => setSelectedVoiceMessageId(null)}
+                      >
+                        <View style={styles.voiceOptionContent}>
+                          <Ionicons 
+                            name={selectedVoiceMessageId === null ? "radio-button-on" : "radio-button-off"} 
+                            size={20} 
+                            color={selectedVoiceMessageId === null ? "#4facfe" : "rgba(255, 255, 255, 0.6)"} 
+                          />
+                          <Text style={styles.voiceOptionText}>Aucun message vocal</Text>
+                        </View>
+                      </TouchableOpacity>
+
+                      {/* Voice Message Options */}
+                      {voiceMessages.map((voice) => (
+                        <View
+                          key={voice.id}
+                          style={[
+                            styles.voiceOption,
+                            selectedVoiceMessageId === voice.id && styles.voiceOptionSelected
+                          ]}
+                        >
+                          <TouchableOpacity
+                            style={styles.voiceOptionSelector}
+                            onPress={() => setSelectedVoiceMessageId(voice.id)}
+                          >
+                            <Ionicons 
+                              name={selectedVoiceMessageId === voice.id ? "radio-button-on" : "radio-button-off"} 
+                              size={20} 
+                              color={selectedVoiceMessageId === voice.id ? "#4facfe" : "rgba(255, 255, 255, 0.6)"} 
+                            />
+                            <Text style={styles.voiceOptionText}>{voice.title || voice.fileName}</Text>
+                          </TouchableOpacity>
+                          
+                          <TouchableOpacity
+                            style={styles.voicePlayButton}
+                            onPress={() => togglePlayVoice(voice)}
+                          >
+                            <Ionicons 
+                              name={playingVoiceId === voice.id && isPlaying ? "pause-circle" : "play-circle"} 
+                              size={32} 
+                              color="#4facfe" 
+                            />
+                          </TouchableOpacity>
+                        </View>
+                      ))}
+                      
+                      {/* Add New Voice Button */}
+                      <TouchableOpacity 
+                        style={styles.addNewVoiceButton}
+                        onPress={() => setShowVoiceRecorder(true)}
+                        disabled={isUploadingVoice}
+                      >
+                        {isUploadingVoice ? (
+                          <ActivityIndicator size="small" color="#4facfe" />
+                        ) : (
+                          <>
+                            <Ionicons name="add-circle" size={20} color="#4facfe" />
+                            <Text style={styles.addNewVoiceText}>Enregistrer un nouveau message</Text>
+                          </>
+                        )}
+                      </TouchableOpacity>
+                    </>
+                  )}
                 </View>
-              )}
+              </View>
 
               {/* Action Buttons */}
               <View style={styles.actionButtons}>
@@ -1695,6 +1888,29 @@ const styles = StyleSheet.create({
   },
   voicePlayButton: {
     padding: 4,
+  },
+  addNewVoiceButtonEmpty: {
+    backgroundColor: 'rgba(79, 172, 254, 0.15)',
+    borderRadius: 16,
+    padding: 32,
+    borderWidth: 2,
+    borderColor: '#4facfe',
+    borderStyle: 'dashed',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 12,
+    minHeight: 120,
+  },
+  addNewVoiceTextEmpty: {
+    color: '#4facfe',
+    fontSize: 18,
+    fontWeight: '600',
+    textAlign: 'center',
+  },
+  addNewVoiceSubtext: {
+    color: 'rgba(255, 255, 255, 0.6)',
+    fontSize: 14,
+    textAlign: 'center',
   },
   addNewVoiceButton: {
     backgroundColor: 'rgba(79, 172, 254, 0.1)',
