@@ -1,0 +1,55 @@
+# Dependencies
+node_modules/
+UsersademaAppDataRoamingnpm/
+
+# Environment variables
+.env
+.env.local
+.env.production
+.env.test
+
+# Build output
+dist/
+build/
+*.tsbuildinfo
+
+# Testing
+coverage/
+*.test.ts.snap
+.nyc_output/
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS
+.DS_Store
+*.swp
+*.swo
+*~
+Thumbs.db
+
+# Database
+*.sql
+backup.sql
+*.db
+*.sqlite
+
+# Uploads (production will use cloud storage)
+uploads/
+
+# Secrets
+*.json.key
+
+# IDE
+.vscode/
+.idea/
+*.iml
+
+# Prisma
+/src/generated/prisma
+
+

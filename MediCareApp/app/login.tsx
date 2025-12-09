@@ -10,9 +10,12 @@ import {
   TextInput,
   KeyboardAvoidingView,
   Platform,
+  TouchableWithoutFeedback,
+  Keyboard,
 } from "react-native";
 import { SafeAreaView } from 'react-native-safe-area-context';
 import VerificationModal from "../components/VerificationModal";
+import InternationalPhoneInput, { PhoneInputValue } from "../components/InternationalPhoneInput";
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { login } from '../services/api/common';
 
@@ -45,7 +48,11 @@ const STORAGE_KEYS = {
 
 export default function LoginScreen() {
   const router = useRouter();
+  const [loginMethod, setLoginMethod] = useState<'email' | 'phone'>('email');
   const [email, setEmail] = useState("");
+  const [phoneNumber, setPhoneNumber] = useState("");
+  const [phoneValidation, setPhoneValidation] = useState<PhoneInputValue | null>(null);
+  const [phoneError, setPhoneError] = useState<string | null>(null);
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -68,7 +75,14 @@ export default function LoginScreen() {
           const savedPassword = await AsyncStorage.getItem(STORAGE_KEYS.SAVED_PASSWORD);
           
           if (savedEmail && savedPassword) {
-            setEmail(savedEmail);
+            // Detect if saved value is email or phone
+            if (savedEmail.includes('@')) {
+              setLoginMethod('email');
+              setEmail(savedEmail);
+            } else {
+              setLoginMethod('phone');
+              setPhoneNumber(savedEmail);
+            }
             setPassword(savedPassword);
             setRememberMe(true);
           }
@@ -83,39 +97,39 @@ export default function LoginScreen() {
     loadSavedCredentials();
   }, []);
 
+  const handlePhoneChange = (value: PhoneInputValue) => {
+    setPhoneValidation(value);
+    setPhoneNumber(value.e164);
+    setPhoneError(null);
+  };
+
   const showModal = (type: 'success' | 'error' | 'warning', title: string, message: string) => {
     setModalData({ type, title, message });
     setModalVisible(true);
   };
 
   const handleLogin = async () => {
-    if (!email || !password) {
-      showModal("error", "Champs manquants", "Veuillez remplir tous les champs");
-      return;
+    // Validate based on login method
+    if (loginMethod === 'email') {
+      if (!email.trim() || !password) {
+        showModal("error", "Champs manquants", "Veuillez remplir tous les champs");
+        return;
+      }
+    } else {
+      if (!phoneValidation || !phoneValidation.isValid || !password) {
+        setPhoneError("Veuillez saisir un numéro de téléphone valide");
+        showModal("error", "Champs manquants", "Veuillez remplir tous les champs avec un numéro de téléphone valide");
+        return;
+      }
     }
 
     setIsLoading(true);
     
     try {
-      // Format phone number if it's not an email
-      let emailOrPhone = email.trim();
-      
-      // Check if it's an email
-      const isEmail = emailOrPhone.includes('@');
-      
-      if (!isEmail) {
-        // It's a phone number - format it with Tunisia country code
-        let cleanPhone = emailOrPhone.replace(/\D/g, '');
-        
-        // Add Tunisia country code if not present
-        if (cleanPhone.startsWith('216')) {
-          emailOrPhone = '+' + cleanPhone;
-        } else if (cleanPhone.startsWith('0')) {
-          emailOrPhone = '+216' + cleanPhone.substring(1);
-        } else {
-          emailOrPhone = '+216' + cleanPhone;
-        }
-      }
+      // Use the appropriate identifier based on login method
+      const emailOrPhone = loginMethod === 'email' 
+        ? email.trim() 
+        : phoneValidation?.e164 || phoneNumber;
       
       const result = await login(emailOrPhone, password);
 
@@ -125,6 +139,7 @@ export default function LoginScreen() {
         // Save credentials if remember me is checked
         if (rememberMe) {
           await AsyncStorage.setItem(STORAGE_KEYS.REMEMBER_ME, 'true');
+          // Save the identifier used (email or phone)
           await AsyncStorage.setItem(STORAGE_KEYS.SAVED_EMAIL, emailOrPhone);
           await AsyncStorage.setItem(STORAGE_KEYS.SAVED_PASSWORD, password);
         } else {
@@ -195,40 +210,112 @@ export default function LoginScreen() {
           behavior={Platform.OS === "ios" ? "padding" : "height"}
           style={styles.keyboardAvoidingView}
         >
-          {/* Header */}
-          <View style={styles.header}>
-            <TouchableOpacity
-              style={styles.backButton}
-              onPress={() => router.replace('/')}
-            >
-              <Ionicons name="arrow-back" size={24} color="white" />
-            </TouchableOpacity>
-            <Text style={styles.headerTitle}>Connexion</Text>
-          </View>
+          <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+            <View style={styles.keyboardDismissArea}>
+              {/* Header */}
+              <View style={styles.header}>
+                <TouchableOpacity
+                  style={styles.backButton}
+                  onPress={() => router.replace('/')}
+                >
+                  <Ionicons name="arrow-back" size={24} color="white" />
+                </TouchableOpacity>
+                <Text style={styles.headerTitle}>Connexion</Text>
+              </View>
 
-          {/* Form */}
-          <View style={styles.formContainer}>
+              {/* Form */}
+              <View style={styles.formContainer}>
             <Text style={styles.title}>Bon retour !</Text>
             <Text style={styles.subtitle}>
               Connectez-vous à votre compte MediCare+
             </Text>
 
-            {/* Email Input */}
-            <View style={styles.inputContainer}>
-              <View style={styles.inputIcon}>
-                <Ionicons name="mail-outline" size={20} color="rgba(255, 255, 255, 0.6)" />
-              </View>
-              <TextInput
-                style={styles.input}
-                placeholder="e-mail ou numéro de téléphone"
-                placeholderTextColor="rgba(255, 255, 255, 0.6)"
-                value={email}
-                onChangeText={setEmail}
-                keyboardType="email-address"
-                autoCapitalize="none"
-                autoCorrect={false}
-              />
+            {/* Login Method Selector */}
+            <View style={styles.loginMethodSelector}>
+              <TouchableOpacity
+                style={[
+                  styles.methodButton,
+                  loginMethod === 'email' && styles.methodButtonActive
+                ]}
+                onPress={() => {
+                  setLoginMethod('email');
+                  setPhoneError(null);
+                }}
+              >
+                <Ionicons 
+                  name="mail-outline" 
+                  size={18} 
+                  color={loginMethod === 'email' ? 'white' : 'rgba(255, 255, 255, 0.6)'} 
+                />
+                <Text style={[
+                  styles.methodButtonText,
+                  loginMethod === 'email' && styles.methodButtonTextActive
+                ]}>
+                  Email
+                </Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity
+                style={[
+                  styles.methodButton,
+                  loginMethod === 'phone' && styles.methodButtonActive
+                ]}
+                onPress={() => {
+                  setLoginMethod('phone');
+                  setPhoneError(null);
+                }}
+              >
+                <Ionicons 
+                  name="call-outline" 
+                  size={18} 
+                  color={loginMethod === 'phone' ? 'white' : 'rgba(255, 255, 255, 0.6)'} 
+                />
+                <Text style={[
+                  styles.methodButtonText,
+                  loginMethod === 'phone' && styles.methodButtonTextActive
+                ]}>
+                  Téléphone
+                </Text>
+              </TouchableOpacity>
             </View>
+
+            {/* Email or Phone Input */}
+            {loginMethod === 'email' ? (
+              <View style={styles.inputContainer}>
+                <View style={styles.inputIcon}>
+                  <Ionicons name="mail-outline" size={20} color="rgba(255, 255, 255, 0.6)" />
+                </View>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Adresse e-mail"
+                  placeholderTextColor="rgba(255, 255, 255, 0.6)"
+                  value={email}
+                  onChangeText={setEmail}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                />
+              </View>
+            ) : (
+              <View style={styles.phoneInputWrapper}>
+                <InternationalPhoneInput
+                  value={phoneNumber}
+                  onChange={handlePhoneChange}
+                  onBlur={() => {
+                    if (phoneValidation && !phoneValidation.isValid) {
+                      setPhoneError("Veuillez saisir un numéro de téléphone valide");
+                    }
+                  }}
+                  defaultCountry="TN"
+                  required={true}
+                  error={phoneError || undefined}
+                  theme="patient"
+                  placeholder="Numéro de téléphone"
+                  accessibilityLabel="Phone number"
+                  testID="login-phone-input"
+                />
+              </View>
+            )}
 
             {/* Password Input */}
             <View style={styles.inputContainer}>
@@ -312,7 +399,9 @@ export default function LoginScreen() {
                 </Text>
               </TouchableOpacity>
             </View>
-          </View>
+              </View>
+            </View>
+          </TouchableWithoutFeedback>
         </KeyboardAvoidingView>
 
         {/* Verification Modal */}
@@ -339,6 +428,9 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   keyboardAvoidingView: {
+    flex: 1,
+  },
+  keyboardDismissArea: {
     flex: 1,
   },
   header: {
@@ -460,5 +552,39 @@ const styles = StyleSheet.create({
   registerLink: {
     fontSize: 16,
     fontWeight: "600",
+  },
+  loginMethodSelector: {
+    flexDirection: 'row',
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 12,
+    padding: 4,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  methodButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    gap: 8,
+  },
+  methodButtonActive: {
+    backgroundColor: 'rgba(79, 172, 254, 0.3)',
+  },
+  methodButtonText: {
+    fontSize: 16,
+    color: 'rgba(255, 255, 255, 0.6)',
+    fontWeight: '500',
+  },
+  methodButtonTextActive: {
+    color: 'white',
+    fontWeight: '600',
+  },
+  phoneInputWrapper: {
+    marginBottom: 16,
   },
 });

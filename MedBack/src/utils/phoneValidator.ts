@@ -1,9 +1,13 @@
+/**
+ * Phone Number Validation Utility
+ * 
+ * Validates phone numbers using libphonenumber-js library.
+ */
+
 import {
   parsePhoneNumber,
   isValidPhoneNumber,
-  getCountryCallingCode,
   CountryCode,
-  PhoneNumber,
 } from 'libphonenumber-js';
 
 export interface PhoneValidationResult {
@@ -19,7 +23,6 @@ export interface PhoneValidationResult {
 
 /**
  * Validate phone number using libphonenumber-js
- * Returns detailed validation result
  */
 export function validatePhoneNumber(
   phoneNumber: string,
@@ -38,7 +41,6 @@ export function validatePhoneNumber(
   }
 
   try {
-    // Try to parse the phone number
     const parsed = parsePhoneNumber(phoneNumber, defaultCountry);
     
     const isValid = isValidPhoneNumber(phoneNumber, parsed.country || defaultCountry);
@@ -56,7 +58,6 @@ export function validatePhoneNumber(
       type,
     };
   } catch (error: any) {
-    // Invalid phone number format
     return {
       isValid: false,
       isPossible: false,
@@ -71,7 +72,6 @@ export function validatePhoneNumber(
 
 /**
  * Validate phone number and return normalized E.164 format
- * Throws error if invalid
  */
 export function validateAndNormalizePhone(
   phoneNumber: string,
@@ -82,7 +82,7 @@ export function validateAndNormalizePhone(
   if (!validation.isValidForCountry || !validation.isPossible) {
     throw new Error(
       validation.error || 
-      `Invalid phone number format. Expected E.164 format (e.g., +21612345678)`
+      'Invalid phone number format. Expected E.164 format (e.g., +21612345678)'
     );
   }
 
@@ -93,7 +93,6 @@ export function validateAndNormalizePhone(
  * Check if phone number is in E.164 format
  */
 export function isE164Format(phoneNumber: string): boolean {
-  // E.164 format: + followed by 1-15 digits
   return /^\+[1-9]\d{1,14}$/.test(phoneNumber);
 }
 
@@ -118,8 +117,5 @@ export function getPhoneValidationErrorMessage(
 
   return validation.error || 'Invalid phone number';
 }
-
-
-
 
 

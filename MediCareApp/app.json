@@ -82,7 +82,7 @@
     "scheme": "medicare",
     "extra": {
       "router": {},
-      "EXPO_PUBLIC_API_URL": "http://192.168.1.198:5000/api",
+      "EXPO_PUBLIC_API_URL": "http://192.168.137.36:5000/api",
       "eas": {
         "projectId": "2a10430e-36a9-48a9-826b-509346ede0ab"
       }

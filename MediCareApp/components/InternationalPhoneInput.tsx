@@ -398,9 +398,16 @@ const InternationalPhoneInput: React.FC<InternationalPhoneInputProps> = ({
             validateAndNotify();
             onBlur?.();
           }}
+          onSubmitEditing={() => {
+            // Dismiss keyboard when user presses done/return
+            inputRef.current?.blur();
+            Keyboard.dismiss();
+          }}
           placeholder={getPlaceholder()}
           placeholderTextColor={colors.textTertiary}
           keyboardType="phone-pad"
+          returnKeyType="done"
+          blurOnSubmit={true}
           editable={!disabled}
           autoFocus={autoFocus}
           accessibilityLabel={accessibilityLabel}
@@ -545,6 +552,8 @@ const styles = StyleSheet.create({
 });
 
 export default InternationalPhoneInput;
+
+
 
 
 

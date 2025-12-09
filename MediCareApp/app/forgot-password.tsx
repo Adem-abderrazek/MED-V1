@@ -1,9 +1,7 @@
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import React, { useState, useEffect } from "react";
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { getThemeColors } from '../config/theme';
+import React, { useState } from "react";
 import {
   StyleSheet,
   Text,
@@ -16,30 +14,18 @@ import {
 } from "react-native";
 import { SafeAreaView } from 'react-native-safe-area-context';
 import VerificationModal from "../components/VerificationModal";
+import InternationalPhoneInput, { PhoneInputValue } from "../components/InternationalPhoneInput";
 import { requestPasswordReset } from '../services/api/common';
 
 export default function ForgotPasswordScreen() {
   const router = useRouter();
-  const [emailOrPhone, setEmailOrPhone] = useState("");
+  const [loginMethod, setLoginMethod] = useState<'email' | 'phone'>('phone');
+  const [email, setEmail] = useState("");
+  const [phoneNumber, setPhoneNumber] = useState("");
+  const [phoneValidation, setPhoneValidation] = useState<PhoneInputValue | null>(null);
+  const [phoneError, setPhoneError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
-  const [userType, setUserType] = useState<'medecin' | 'tuteur' | null>(null);
-  
-  // Load user type from storage
-  useEffect(() => {
-    const loadUserType = async () => {
-      try {
-        const userData = await AsyncStorage.getItem('userData');
-        if (userData) {
-          const user = JSON.parse(userData);
-          setUserType(user.userType);
-        }
-      } catch (error) {
-        console.error('Error loading user type:', error);
-      }
-    };
-    loadUserType();
-  }, []);
 
   const [modalData, setModalData] = useState({
     type: 'success' as 'success' | 'error' | 'warning',
@@ -57,31 +43,27 @@ export default function ForgotPasswordScreen() {
     return emailRegex.test(email);
   };
 
-  const validateTunisianPhone = (phone: string): boolean => {
-    const cleanPhone = phone.replace(/\D/g, '');
-    const mobilePattern = /^(?:\+216|216|0)?[2-5]\d{7}$/;
-    const landlinePattern = /^(?:\+216|216|0)?[7-9]\d{7}$/;
-    return mobilePattern.test(cleanPhone) || landlinePattern.test(cleanPhone);
-  };
-
-  const isEmail = (input: string): boolean => {
-    return input.includes('@');
+  const handlePhoneChange = (value: PhoneInputValue) => {
+    setPhoneValidation(value);
+    setPhoneNumber(value.e164);
+    setPhoneError(null);
   };
 
   const handleSendVerification = async () => {
-    if (!emailOrPhone.trim()) {
-      showModal("error", "Champ manquant", "Veuillez saisir votre email ou numéro de téléphone");
-      return;
-    }
-
-    if (isEmail(emailOrPhone)) {
-      if (!validateEmail(emailOrPhone)) {
+    // Validate based on login method
+    if (loginMethod === 'email') {
+      if (!email.trim()) {
+        showModal("error", "Champ manquant", "Veuillez saisir votre email");
+        return;
+      }
+      if (!validateEmail(email)) {
         showModal("error", "Email invalide", "Veuillez saisir une adresse email valide");
         return;
       }
     } else {
-      if (!validateTunisianPhone(emailOrPhone)) {
-        showModal("error", "Numéro invalide", "Veuillez saisir un numéro de téléphone tunisien valide");
+      if (!phoneValidation || !phoneValidation.isValid) {
+        setPhoneError("Veuillez saisir un numéro de téléphone valide");
+        showModal("error", "Numéro invalide", "Veuillez saisir un numéro de téléphone valide");
         return;
       }
     }
@@ -89,6 +71,11 @@ export default function ForgotPasswordScreen() {
     setIsLoading(true);
     
     try {
+      // Use the appropriate identifier based on login method
+      const emailOrPhone = loginMethod === 'email' 
+        ? email.trim() 
+        : phoneValidation?.e164 || phoneNumber;
+      
       // Call send verification code API
       const result = await requestPasswordReset(emailOrPhone);
 
@@ -101,7 +88,7 @@ export default function ForgotPasswordScreen() {
           setModalVisible(false);
           router.push({
             pathname: '/verify-code',
-            params: { emailOrPhone, method: isEmail(emailOrPhone) ? 'email' : 'sms' }
+            params: { emailOrPhone, method: loginMethod === 'email' ? 'email' : 'sms' }
           });
         }, 2000);
       } else {
@@ -122,85 +109,149 @@ export default function ForgotPasswordScreen() {
     }
   };
 
-  const colors = getThemeColors(userType || 'medecin');
-  const gradientColors = (colors.background || ['#1a1a2e', '#16213e', '#0f3460']) as [string, string, string];
-  const primaryGradient = (colors.gradient || ['#4facfe', '#00f2fe']) as [string, string];
-  const themedStyles = styles(colors);
+  const gradientColors = ['#1a1a2e', '#16213e', '#0f3460'] as [string, string, string];
+  const primaryGradient = ['#4facfe', '#00f2fe'] as [string, string];
 
   return (
-    <SafeAreaView style={themedStyles.container}>
+    <SafeAreaView style={styles.container}>
       <LinearGradient
         colors={gradientColors}
-        style={themedStyles.background}
+        style={styles.background}
       >
         <KeyboardAvoidingView 
           behavior={Platform.OS === "ios" ? "padding" : "height"}
-          style={themedStyles.keyboardAvoidingView}
+          style={styles.keyboardAvoidingView}
         >
           <ScrollView
-            style={themedStyles.scrollView}
-            contentContainerStyle={themedStyles.scrollContent}
+            style={styles.scrollView}
+            contentContainerStyle={styles.scrollContent}
             showsVerticalScrollIndicator={false}
           >
             {/* Header */}
-            <View style={themedStyles.header}>
+            <View style={styles.header}>
               <TouchableOpacity
-                style={themedStyles.backButton}
+                style={styles.backButton}
                 onPress={() => router.replace('/login')}
               >
                 <Ionicons name="arrow-back" size={24} color="white" />
               </TouchableOpacity>
-              <Text style={themedStyles.headerTitle}>Mot de passe oublié</Text>
+              <Text style={styles.headerTitle}>Mot de passe oublié</Text>
             </View>
 
             {/* Form */}
-            <View style={themedStyles.formContainer}>
-              <View style={themedStyles.iconContainer}>
+            <View style={styles.formContainer}>
+              <View style={styles.iconContainer}>
                 <LinearGradient
                   colors={primaryGradient}
-                  style={themedStyles.iconGradient}
+                  style={styles.iconGradient}
                 >
                   <Ionicons name="lock-closed-outline" size={40} color="white" />
                 </LinearGradient>
               </View>
 
-              <Text style={themedStyles.title}>Réinitialiser votre mot de passe</Text>
-              <Text style={themedStyles.subtitle}>
+              <Text style={styles.title}>Réinitialiser votre mot de passe</Text>
+              <Text style={styles.subtitle}>
                 Saisissez votre email ou numéro de téléphone pour recevoir un code de vérification
               </Text>
 
-              {/* Email/Phone Input */}
-              <View style={themedStyles.inputContainer}>
-                <View style={themedStyles.inputIcon}>
+              {/* Login Method Selector */}
+              <View style={styles.loginMethodSelector}>
+                <TouchableOpacity
+                  style={[
+                    styles.methodButton,
+                    loginMethod === 'email' && styles.methodButtonActive
+                  ]}
+                  onPress={() => {
+                    setLoginMethod('email');
+                    setPhoneError(null);
+                  }}
+                >
                   <Ionicons 
-                    name={isEmail(emailOrPhone) ? "mail-outline" : "call-outline"} 
-                    size={20} 
-                    color={colors.textTertiary} 
+                    name="mail-outline" 
+                    size={18} 
+                    color={loginMethod === 'email' ? 'white' : 'rgba(255, 255, 255, 0.6)'} 
                   />
-                </View>
-                <TextInput
-                  style={themedStyles.input}
-                  placeholder="Email ou numéro de téléphone"
-                  placeholderTextColor={colors.textTertiary}
-                  value={emailOrPhone}
-                  onChangeText={setEmailOrPhone}
-                  keyboardType={isEmail(emailOrPhone) ? "email-address" : "phone-pad"}
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                />
+                  <Text style={[
+                    styles.methodButtonText,
+                    loginMethod === 'email' && styles.methodButtonTextActive
+                  ]}>
+                    Email
+                  </Text>
+                </TouchableOpacity>
+                
+                <TouchableOpacity
+                  style={[
+                    styles.methodButton,
+                    loginMethod === 'phone' && styles.methodButtonActive
+                  ]}
+                  onPress={() => {
+                    setLoginMethod('phone');
+                    setPhoneError(null);
+                  }}
+                >
+                  <Ionicons 
+                    name="call-outline" 
+                    size={18} 
+                    color={loginMethod === 'phone' ? 'white' : 'rgba(255, 255, 255, 0.6)'} 
+                  />
+                  <Text style={[
+                    styles.methodButtonText,
+                    loginMethod === 'phone' && styles.methodButtonTextActive
+                  ]}>
+                    Téléphone
+                  </Text>
+                </TouchableOpacity>
               </View>
 
+              {/* Email or Phone Input */}
+              {loginMethod === 'email' ? (
+                <View style={styles.inputContainer}>
+                  <View style={styles.inputIcon}>
+                    <Ionicons name="mail-outline" size={20} color="rgba(255, 255, 255, 0.6)" />
+                  </View>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Adresse e-mail"
+                    placeholderTextColor="rgba(255, 255, 255, 0.6)"
+                    value={email}
+                    onChangeText={setEmail}
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                  />
+                </View>
+              ) : (
+                <View style={styles.phoneInputWrapper}>
+                  <InternationalPhoneInput
+                    value={phoneNumber}
+                    onChange={handlePhoneChange}
+                    onBlur={() => {
+                      if (phoneValidation && !phoneValidation.isValid) {
+                        setPhoneError("Veuillez saisir un numéro de téléphone valide");
+                      }
+                    }}
+                    defaultCountry="TN"
+                    required={true}
+                    error={phoneError || undefined}
+                    theme="patient"
+                    placeholder="Numéro de téléphone"
+                    accessibilityLabel="Phone number"
+                    testID="forgot-password-phone-input"
+                  />
+                </View>
+              )}
+
               {/* Info Text */}
-              <View style={themedStyles.infoContainer}>
+              <View style={styles.infoContainer}>
                 <Ionicons name="information-circle-outline" size={16} color="rgba(255, 255, 255, 0.7)" />
-                <Text style={themedStyles.infoText}>
+                <Text style={styles.infoText}>
                   Le code de vérification sera envoyé par SMS à votre numéro de téléphone
                 </Text>
               </View>
 
               {/* Send Button */}
               <TouchableOpacity
-                style={[themedStyles.sendButton, isLoading && themedStyles.sendButtonDisabled]}
+                style={[styles.sendButton, isLoading && styles.sendButtonDisabled]}
                 onPress={handleSendVerification}
                 disabled={isLoading}
               >
@@ -208,20 +259,20 @@ export default function ForgotPasswordScreen() {
                   colors={primaryGradient}
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 0 }}
-                  style={themedStyles.sendButtonGradient}
+                  style={styles.sendButtonGradient}
                 >
-                  <Text style={themedStyles.sendButtonText}>
+                  <Text style={styles.sendButtonText}>
                     {isLoading ? "Envoi en cours..." : "Envoyer le code"}
                   </Text>
-                  {!isLoading && <Ionicons name="arrow-forward" size={20} color="white" style={themedStyles.buttonIcon} />}
+                  {!isLoading && <Ionicons name="arrow-forward" size={20} color="white" style={styles.buttonIcon} />}
                 </LinearGradient>
               </TouchableOpacity>
 
               {/* Back to Login */}
-              <View style={themedStyles.loginContainer}>
-                <Text style={themedStyles.loginText}>Vous vous souvenez de votre mot de passe ? </Text>
+              <View style={styles.loginContainer}>
+                <Text style={styles.loginText}>Vous vous souvenez de votre mot de passe ? </Text>
                 <TouchableOpacity onPress={() => router.push("/login")}>
-                  <Text style={themedStyles.loginLink}>Se connecter</Text>
+                  <Text style={styles.loginLink}>Se connecter</Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -241,7 +292,7 @@ export default function ForgotPasswordScreen() {
   );
 }
 
-const styles = (colors: ReturnType<typeof getThemeColors>) => StyleSheet.create({
+const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
@@ -271,7 +322,7 @@ const styles = (colors: ReturnType<typeof getThemeColors>) => StyleSheet.create(
   headerTitle: {
     fontSize: 20,
     fontWeight: "600",
-    color: colors.text,
+    color: "white",
   },
   formContainer: {
     flex: 1,
@@ -288,7 +339,7 @@ const styles = (colors: ReturnType<typeof getThemeColors>) => StyleSheet.create(
     borderRadius: 40,
     justifyContent: "center",
     alignItems: "center",
-    shadowColor: colors.primary,
+    shadowColor: "#4facfe",
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.3,
     shadowRadius: 12,
@@ -297,13 +348,13 @@ const styles = (colors: ReturnType<typeof getThemeColors>) => StyleSheet.create(
   title: {
     fontSize: 28,
     fontWeight: "800",
-    color: colors.text,
+    color: "white",
     textAlign: "center",
     marginBottom: 10,
   },
   subtitle: {
     fontSize: 16,
-    color: colors.textSecondary,
+    color: "rgba(255, 255, 255, 0.8)",
     textAlign: "center",
     marginBottom: 40,
     lineHeight: 22,
@@ -312,12 +363,12 @@ const styles = (colors: ReturnType<typeof getThemeColors>) => StyleSheet.create(
   inputContainer: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: `${colors.primary}10`,
+    backgroundColor: "rgba(255, 255, 255, 0.1)",
     borderRadius: 12,
     marginBottom: 20,
     paddingHorizontal: 16,
     borderWidth: 1,
-    borderColor: `${colors.primary}20`,
+    borderColor: "rgba(255, 255, 255, 0.2)",
     width: "100%",
   },
   inputIcon: {
@@ -326,13 +377,13 @@ const styles = (colors: ReturnType<typeof getThemeColors>) => StyleSheet.create(
   input: {
     flex: 1,
     height: 50,
-    color: colors.text,
+    color: "white",
     fontSize: 16,
   },
   infoContainer: {
     flexDirection: "row",
     alignItems: "flex-start",
-    backgroundColor: `${colors.primary}05`,
+    backgroundColor: "rgba(79, 172, 254, 0.05)",
     borderRadius: 8,
     padding: 12,
     marginBottom: 30,
@@ -341,7 +392,7 @@ const styles = (colors: ReturnType<typeof getThemeColors>) => StyleSheet.create(
   infoText: {
     flex: 1,
     fontSize: 14,
-    color: colors.textTertiary,
+    color: "rgba(255, 255, 255, 0.6)",
     marginLeft: 8,
     lineHeight: 18,
   },
@@ -358,14 +409,14 @@ const styles = (colors: ReturnType<typeof getThemeColors>) => StyleSheet.create(
     justifyContent: "center",
     alignItems: "center",
     flexDirection: "row",
-    shadowColor: colors.primary,
+    shadowColor: "#4facfe",
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
     elevation: 12,
   },
   sendButtonText: {
-    color: colors.text,
+    color: "white",
     fontSize: 18,
     fontWeight: "700",
   },
@@ -379,12 +430,46 @@ const styles = (colors: ReturnType<typeof getThemeColors>) => StyleSheet.create(
     flexWrap: "wrap",
   },
   loginText: {
-    color: colors.textSecondary,
+    color: "rgba(255, 255, 255, 0.8)",
     fontSize: 16,
   },
   loginLink: {
-    color: colors.primary,
+    color: "#4facfe",
     fontSize: 16,
     fontWeight: "600",
+  },
+  loginMethodSelector: {
+    flexDirection: 'row',
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 12,
+    padding: 4,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  methodButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    gap: 8,
+  },
+  methodButtonActive: {
+    backgroundColor: 'rgba(79, 172, 254, 0.3)',
+  },
+  methodButtonText: {
+    fontSize: 16,
+    color: 'rgba(255, 255, 255, 0.6)',
+    fontWeight: '500',
+  },
+  methodButtonTextActive: {
+    color: 'white',
+    fontWeight: '600',
+  },
+  phoneInputWrapper: {
+    marginBottom: 20,
   },
 });

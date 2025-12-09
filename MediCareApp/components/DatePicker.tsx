@@ -82,6 +82,8 @@ export default function DatePicker({ selectedDate, onDateChange, placeholder = "
           onChange={handleDateChange}
           maximumDate={new Date()}
           minimumDate={new Date(1900, 0, 1)}
+          textColor={Platform.OS === 'ios' ? '#FFFFFF' : undefined}
+          themeVariant="dark"
         />
       )}
     </View>

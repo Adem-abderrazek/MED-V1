@@ -18,6 +18,7 @@ import RolePicker from "../components/RolePicker";
 import DatePicker from "../components/DatePicker";
 import InternationalPhoneInput, { PhoneInputValue } from "../components/InternationalPhoneInput";
 import { register } from '../services/api/common';
+import { getThemeColors } from '../config/theme';
 
 export default function RegisterScreen() {
   const router = useRouter();
@@ -74,6 +75,29 @@ export default function RegisterScreen() {
     return age >= 13;
   };
 
+  // Get theme colors based on user type
+  const colors = getThemeColors(formData.userType as 'patient' | 'medecin' | 'tuteur' || 'patient');
+  
+  // Password strength calculator
+  const getPasswordStrength = () => {
+    const password = formData.password;
+    if (!password) return { strength: 0, text: "", color: "" };
+
+    let score = 0;
+    if (password.length >= 6) score++;
+    if (password.length >= 8) score++;
+    if (/[A-Z]/.test(password)) score++;
+    if (/[a-z]/.test(password)) score++;
+    if (/\d/.test(password)) score++;
+    if (/[!@#$%^&*(),.?":{}|<>]/.test(password)) score++;
+
+    if (score <= 2) return { strength: score, text: "Faible", color: "#EF4444" };
+    if (score <= 4) return { strength: score, text: "Moyen", color: "#F59E0B" };
+    return { strength: score, text: "Fort", color: "#10B981" };
+  };
+
+  const passwordStrength = getPasswordStrength();
+
   const handleRegister = async () => {
     const { firstName, lastName, phoneNumber, email, password, confirmPassword, userType, dateNaissance } = formData;
 
@@ -114,8 +138,18 @@ export default function RegisterScreen() {
       return;
     }
 
+    // Password strength validation
+    const hasUpperCase = /[A-Z]/.test(password);
+    const hasLowerCase = /[a-z]/.test(password);
+    const hasNumbers = /\d/.test(password);
+
     if (password.length < 6) {
       showModal("error", "Mot de passe faible", "Le mot de passe doit contenir au moins 6 caractères");
+      return;
+    }
+
+    if (!hasUpperCase || !hasLowerCase || !hasNumbers) {
+      showModal("warning", "Mot de passe faible", "Le mot de passe doit contenir au moins une majuscule, une minuscule et un chiffre");
       return;
     }
 
@@ -299,6 +333,81 @@ export default function RegisterScreen() {
                     <Ionicons name="eye-outline" size={20} color="rgba(255, 255, 255, 0.6)" />
                   )}
                 </TouchableOpacity>
+              </View>
+
+              {/* Password Strength Indicator */}
+              {formData.password && (
+                <View style={styles.strengthContainer}>
+                  <View style={styles.strengthBar}>
+                    <View style={[
+                      styles.strengthFill,
+                      {
+                        width: `${(passwordStrength.strength / 6) * 100}%`,
+                        backgroundColor: passwordStrength.color
+                      }
+                    ]} />
+                  </View>
+                  <Text style={[styles.strengthText, { color: passwordStrength.color }]}>
+                    {passwordStrength.text}
+                  </Text>
+                </View>
+              )}
+
+              {/* Password Requirements */}
+              <View style={styles.requirementsContainer}>
+                <Text style={styles.requirementsTitle}>Le mot de passe doit contenir :</Text>
+                <View style={styles.requirement}>
+                  <Ionicons 
+                    name={formData.password.length >= 6 ? "checkmark-circle" : "ellipse-outline"} 
+                    size={16} 
+                    color={formData.password.length >= 6 ? "#10B981" : "rgba(255, 255, 255, 0.6)"} 
+                  />
+                  <Text style={[
+                    styles.requirementText,
+                    formData.password.length >= 6 && styles.requirementTextMet
+                  ]}>
+                    Au moins 6 caractères
+                  </Text>
+                </View>
+                <View style={styles.requirement}>
+                  <Ionicons 
+                    name={/[A-Z]/.test(formData.password) ? "checkmark-circle" : "ellipse-outline"} 
+                    size={16} 
+                    color={/[A-Z]/.test(formData.password) ? "#10B981" : "rgba(255, 255, 255, 0.6)"} 
+                  />
+                  <Text style={[
+                    styles.requirementText,
+                    /[A-Z]/.test(formData.password) && styles.requirementTextMet
+                  ]}>
+                    Une majuscule
+                  </Text>
+                </View>
+                <View style={styles.requirement}>
+                  <Ionicons 
+                    name={/[a-z]/.test(formData.password) ? "checkmark-circle" : "ellipse-outline"} 
+                    size={16} 
+                    color={/[a-z]/.test(formData.password) ? "#10B981" : "rgba(255, 255, 255, 0.6)"} 
+                  />
+                  <Text style={[
+                    styles.requirementText,
+                    /[a-z]/.test(formData.password) && styles.requirementTextMet
+                  ]}>
+                    Une minuscule
+                  </Text>
+                </View>
+                <View style={styles.requirement}>
+                  <Ionicons 
+                    name={/\d/.test(formData.password) ? "checkmark-circle" : "ellipse-outline"} 
+                    size={16} 
+                    color={/\d/.test(formData.password) ? "#10B981" : "rgba(255, 255, 255, 0.6)"} 
+                  />
+                  <Text style={[
+                    styles.requirementText,
+                    /\d/.test(formData.password) && styles.requirementTextMet
+                  ]}>
+                    Un chiffre
+                  </Text>
+                </View>
               </View>
 
               {/* Confirm Password Input */}
@@ -513,5 +622,51 @@ const styles = StyleSheet.create({
   },
   phoneInputWrapper: {
     marginBottom: 16,
+  },
+  strengthContainer: {
+    width: "100%",
+    marginBottom: 16,
+  },
+  strengthBar: {
+    height: 4,
+    backgroundColor: "rgba(255, 255, 255, 0.2)",
+    borderRadius: 2,
+    overflow: "hidden",
+    marginBottom: 8,
+  },
+  strengthFill: {
+    height: "100%",
+    borderRadius: 2,
+  },
+  strengthText: {
+    fontSize: 14,
+    fontWeight: "600",
+    textAlign: "center",
+  },
+  requirementsContainer: {
+    width: "100%",
+    backgroundColor: "rgba(79, 172, 254, 0.05)",
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+  },
+  requirementsTitle: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "white",
+    marginBottom: 12,
+  },
+  requirement: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 8,
+  },
+  requirementText: {
+    fontSize: 14,
+    color: "rgba(255, 255, 255, 0.6)",
+    marginLeft: 8,
+  },
+  requirementTextMet: {
+    color: "#10B981",
   },
 });
