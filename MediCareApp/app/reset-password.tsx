@@ -17,9 +17,11 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import VerificationModal from "../components/VerificationModal";
 import { resetPassword } from '../services/api/common';
+import { useLanguage } from '../contexts/LanguageContext';
 
 export default function ResetPasswordScreen() {
   const router = useRouter();
+  const { t, isRTL } = useLanguage();
   const params = useLocalSearchParams();
   const { emailOrPhone, verificationCode } = params as { emailOrPhone: string; verificationCode: string };
   
@@ -74,17 +76,17 @@ export default function ResetPasswordScreen() {
 
     // Validation
     if (!newPassword || !confirmPassword) {
-      showModal("error", "Champs manquants", "Veuillez remplir tous les champs");
+      showModal("error", t("auth.resetPassword.errors.missingFields"), t("auth.resetPassword.errors.missingFieldsMessage"));
       return;
     }
 
     if (newPassword !== confirmPassword) {
-      showModal("error", "Mots de passe différents", "Les mots de passe ne correspondent pas");
+      showModal("error", t("auth.resetPassword.errors.passwordMismatch"), t("auth.resetPassword.errors.passwordMismatchMessage"));
       return;
     }
 
     if (newPassword.length < 6) {
-      showModal("error", "Mot de passe faible", "Le mot de passe doit contenir au moins 6 caractères");
+      showModal("error", t("auth.resetPassword.errors.weakPassword"), t("auth.resetPassword.errors.weakPasswordMessage"));
       return;
     }
 
@@ -95,7 +97,7 @@ export default function ResetPasswordScreen() {
     const hasSpecialChar = /[!@#$%^&*(),.?":{}|<>]/.test(newPassword);
 
     if (!hasUpperCase || !hasLowerCase || !hasNumbers) {
-      showModal("warning", "Mot de passe faible", "Le mot de passe doit contenir au moins une majuscule, une minuscule et un chiffre");
+      showModal("warning", t("auth.resetPassword.errors.weakPassword"), t("auth.resetPassword.errors.weakPasswordDetails"));
       return;
     }
 
@@ -110,27 +112,27 @@ export default function ResetPasswordScreen() {
       setIsLoading(false);
       
       if (result.success) {
-        showModal("success", "Mot de passe réinitialisé!", "Votre mot de passe a été mis à jour avec succès.");
+        showModal("success", t("auth.resetPassword.success.title"), t("auth.resetPassword.success.message"));
         // Navigate to login screen after successful modal
         setTimeout(() => {
           setModalVisible(false);
           router.push("/login");
         }, 2000);
       } else {
-        showModal("error", "Erreur", result.message || "Une erreur est survenue lors de la réinitialisation.");
+        showModal("error", t("auth.resetPassword.errors.error"), result.message || t("auth.resetPassword.errors.errorMessage"));
       }
     } catch (error: any) {
       setIsLoading(false);
       console.error('Reset password error:', error);
       
-      let errorMessage = "Une erreur est survenue lors de la réinitialisation.";
+      let errorMessage = t("auth.resetPassword.errors.errorMessage");
       if (error.response?.data?.message) {
         errorMessage = error.response.data.message;
       } else if (error.message) {
         errorMessage = error.message;
       }
       
-      showModal("error", "Erreur", errorMessage);
+      showModal("error", t("auth.resetPassword.errors.error"), errorMessage);
     }
   };
 
@@ -152,9 +154,9 @@ export default function ResetPasswordScreen() {
     if (/\d/.test(password)) score++;
     if (/[!@#$%^&*(),.?":{}|<>]/.test(password)) score++;
 
-    if (score <= 2) return { strength: score, text: "Faible", color: colors.error[0] };
-    if (score <= 4) return { strength: score, text: "Moyen", color: colors.warning[0] };
-    return { strength: score, text: "Fort", color: colors.success[0] };
+    if (score <= 2) return { strength: score, text: t("auth.register.passwordStrength.weak"), color: colors.error[0] };
+    if (score <= 4) return { strength: score, text: t("auth.register.passwordStrength.medium"), color: colors.warning[0] };
+    return { strength: score, text: t("auth.register.passwordStrength.strong"), color: colors.success[0] };
   };
 
   const passwordStrength = getPasswordStrength();
@@ -182,7 +184,7 @@ export default function ResetPasswordScreen() {
               >
                 <Ionicons name="arrow-back" size={24} color="white" />
               </TouchableOpacity>
-              <Text style={themedStyles.headerTitle}>Nouveau mot de passe</Text>
+              <Text style={themedStyles.headerTitle}>{t("auth.resetPassword.title")}</Text>
             </View>
 
             {/* Form */}
@@ -196,9 +198,9 @@ export default function ResetPasswordScreen() {
                 </LinearGradient>
               </View>
 
-              <Text style={themedStyles.title}>Choisissez un nouveau mot de passe</Text>
+              <Text style={themedStyles.title}>{t("auth.resetPassword.title")}</Text>
               <Text style={themedStyles.subtitle}>
-                Votre mot de passe doit être sécurisé et unique
+                {t("auth.resetPassword.subtitle")}
               </Text>
 
               {/* New Password Input */}
@@ -208,7 +210,7 @@ export default function ResetPasswordScreen() {
                 </View>
                 <TextInput
                   style={themedStyles.input}
-                  placeholder="Nouveau mot de passe"
+                  placeholder={t("auth.resetPassword.passwordPlaceholder")}
                   placeholderTextColor={colors.textTertiary}
                   value={formData.newPassword}
                   onChangeText={(value) => handleInputChange("newPassword", value)}
@@ -247,7 +249,7 @@ export default function ResetPasswordScreen() {
 
               {/* Password Requirements */}
               <View style={themedStyles.requirementsContainer}>
-                <Text style={themedStyles.requirementsTitle}>Le mot de passe doit contenir :</Text>
+                <Text style={themedStyles.requirementsTitle}>{t("auth.register.passwordRequirements.title")}</Text>
                 <View style={themedStyles.requirement}>
                   <Ionicons 
                     name={formData.newPassword.length >= 6 ? "checkmark-circle" : "ellipse-outline"} 
@@ -258,7 +260,7 @@ export default function ResetPasswordScreen() {
                     themedStyles.requirementText,
                     formData.newPassword.length >= 6 && themedStyles.requirementTextMet
                   ]}>
-                    Au moins 6 caractères
+                    {t("auth.register.passwordRequirements.minLength")}
                   </Text>
                 </View>
                 <View style={themedStyles.requirement}>
@@ -271,7 +273,7 @@ export default function ResetPasswordScreen() {
                     themedStyles.requirementText,
                     /[A-Z]/.test(formData.newPassword) && themedStyles.requirementTextMet
                   ]}>
-                    Une majuscule
+                    {t("auth.register.passwordRequirements.uppercase")}
                   </Text>
                 </View>
                 <View style={themedStyles.requirement}>
@@ -284,7 +286,7 @@ export default function ResetPasswordScreen() {
                     themedStyles.requirementText,
                     /[a-z]/.test(formData.newPassword) && themedStyles.requirementTextMet
                   ]}>
-                    Une minuscule
+                    {t("auth.register.passwordRequirements.lowercase")}
                   </Text>
                 </View>
                 <View style={themedStyles.requirement}>
@@ -297,7 +299,7 @@ export default function ResetPasswordScreen() {
                     themedStyles.requirementText,
                     /\d/.test(formData.newPassword) && themedStyles.requirementTextMet
                   ]}>
-                    Un chiffre
+                    {t("auth.register.passwordRequirements.number")}
                   </Text>
                 </View>
               </View>
@@ -309,7 +311,7 @@ export default function ResetPasswordScreen() {
                 </View>
                 <TextInput
                   style={themedStyles.input}
-                  placeholder="Confirmer le nouveau mot de passe"
+                  placeholder={t("auth.resetPassword.confirmPasswordPlaceholder")}
                   placeholderTextColor={colors.textTertiary}
                   value={formData.confirmPassword}
                   onChangeText={(value) => handleInputChange("confirmPassword", value)}
@@ -341,7 +343,7 @@ export default function ResetPasswordScreen() {
                   style={themedStyles.resetButtonGradient}
                 >
                   <Text style={themedStyles.resetButtonText}>
-                    {isLoading ? "Réinitialisation..." : "Réinitialiser le mot de passe"}
+                    {isLoading ? t("auth.resetPassword.resetting") : t("auth.resetPassword.resetButton")}
                   </Text>
                   {!isLoading && <Ionicons name="checkmark" size={20} color="white" style={themedStyles.buttonIcon} />}
                 </LinearGradient>

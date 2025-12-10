@@ -13,6 +13,8 @@ import {
 } from "react-native";
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useLanguage } from '../contexts/LanguageContext';
+import LanguageButton from '../components/LanguageButton';
 
 const { width, height } = Dimensions.get('window');
 
@@ -23,57 +25,62 @@ interface FeatureCard {
   gradient: [string, string];
 }
 
-const features: FeatureCard[] = [
-  {
-    icon: "time-outline",
-    title: "Rappels automatiques",
-    description: "Recevez des notifications pour vos médicaments",
-    gradient: ["#667eea", "#764ba2"]
-  },
-  {
-    icon: "chatbubble-outline",
-    title: "Communication sécurisée",
-    description: "Échangez avec votre médecin en toute confidentialité",
-    gradient: ["#f093fb", "#f5576c"]
-  },
-  {
-    icon: "shield-checkmark-outline",
-    title: "Données protégées",
-    description: "Vos informations médicales sont sécurisées",
-    gradient: ["#4facfe", "#00f2fe"]
-  },
-  {
-    icon: "phone-portrait-outline",
-    title: "Interface intuitive",
-    description: "Une app simple et accessible pour tous",
-    gradient: ["#43e97b", "#38f9d7"]
-  }
-];
-
-const testimonials = [
-  {
-    name: "Marie Dubois",
-    role: "Patient",
-    text: "MediCare+ a transformé ma gestion des médicaments. Je ne rate plus jamais un traitement !",
-    rating: 5
-  },
-  {
-    name: "Dr. Pierre Martin",
-    role: "Médecin",
-    text: "Une plateforme exceptionnelle pour suivre mes patients et leurs traitements.",
-    rating: 5
-  },
-  {
-    name: "Sophie Laurent",
-    role: "Tutrice",
-    text: "Parfait pour gérer les médicaments de ma mère âgée. Interface très simple.",
-    rating: 5
-  }
-];
+// Features and testimonials will be generated dynamically using translations
 
 export default function LandingScreen() {
   const router = useRouter();
+  const { t, isRTL } = useLanguage();
   const [isChecking, setIsChecking] = useState(true);
+
+  // Generate features from translations
+  const features: FeatureCard[] = [
+    {
+      icon: "time-outline",
+      title: t("landing.features.automaticReminders.title"),
+      description: t("landing.features.automaticReminders.description"),
+      gradient: ["#667eea", "#764ba2"]
+    },
+    {
+      icon: "chatbubble-outline",
+      title: t("landing.features.secureCommunication.title"),
+      description: t("landing.features.secureCommunication.description"),
+      gradient: ["#f093fb", "#f5576c"]
+    },
+    {
+      icon: "shield-checkmark-outline",
+      title: t("landing.features.protectedData.title"),
+      description: t("landing.features.protectedData.description"),
+      gradient: ["#4facfe", "#00f2fe"]
+    },
+    {
+      icon: "phone-portrait-outline",
+      title: t("landing.features.intuitiveInterface.title"),
+      description: t("landing.features.intuitiveInterface.description"),
+      gradient: ["#43e97b", "#38f9d7"]
+    }
+  ];
+
+  // Generate testimonials from translations
+  const testimonials = [
+    {
+      name: t("landing.testimonials.patient.name"),
+      role: t("landing.testimonials.patient.role"),
+      text: t("landing.testimonials.patient.text"),
+      rating: 5
+    },
+    {
+      name: t("landing.testimonials.doctor.name"),
+      role: t("landing.testimonials.doctor.role"),
+      text: t("landing.testimonials.doctor.text"),
+      rating: 5
+    },
+    {
+      name: t("landing.testimonials.caregiver.name"),
+      role: t("landing.testimonials.caregiver.role"),
+      text: t("landing.testimonials.caregiver.text"),
+      rating: 5
+    }
+  ];
   
   // Check if user is already logged in and redirect immediately
   useEffect(() => {
@@ -118,7 +125,7 @@ export default function LandingScreen() {
         <LinearGradient colors={["#1a1a2e", "#16213e", "#0f3460"]} style={styles.background}>
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color="#4facfe" />
-            <Text style={styles.loadingText}>Chargement...</Text>
+            <Text style={styles.loadingText}>{t("landing.loading")}</Text>
           </View>
         </LinearGradient>
       </SafeAreaView>
@@ -131,6 +138,11 @@ export default function LandingScreen() {
         colors={["#1a1a2e", "#16213e", "#0f3460"]}
         style={styles.background}
       >
+        {/* Language Switcher Button - Top Right */}
+        <View style={[styles.headerContainer, isRTL && styles.headerContainerRTL]}>
+          <LanguageButton />
+        </View>
+
         <ScrollView
           contentContainerStyle={styles.scrollContainer}
           showsVerticalScrollIndicator={false}
@@ -149,11 +161,10 @@ export default function LandingScreen() {
               </LinearGradient>
             </View>
 
-            <Text style={styles.appName}>MediCare+</Text>
-            <Text style={styles.slogan}>Votre santé, notre priorité</Text>
-            <Text style={styles.subSlogan}>
-              La plateforme qui connecte patients, tuteurs et médecins
-              pour un suivi médical moderne et sécurisé
+            <Text style={styles.appName}>{t("landing.appName")}</Text>
+            <Text style={styles.slogan}>{t("landing.slogan")}</Text>
+            <Text style={[styles.subSlogan, isRTL && { textAlign: 'right' }]}>
+              {t("landing.subSlogan")}
             </Text>
 
             {/* CTA Buttons */}
@@ -168,8 +179,13 @@ export default function LandingScreen() {
                   end={{ x: 1, y: 0 }}
                   style={styles.primaryButton}
                 >
-                  <Text style={styles.primaryButtonText}>Se connecter</Text>
-                  <Ionicons name="arrow-forward" size={20} color="white" style={styles.buttonIcon} />
+                  <Text style={styles.primaryButtonText}>{t("landing.cta.login")}</Text>
+                  <Ionicons 
+                    name={isRTL ? "arrow-back" : "arrow-forward"} 
+                    size={20} 
+                    color="white" 
+                    style={styles.buttonIcon} 
+                  />
                 </LinearGradient>
               </TouchableOpacity>
 
@@ -177,16 +193,16 @@ export default function LandingScreen() {
                 style={styles.secondaryButton}
                 onPress={() => router.push("/register")}
               >
-                <Text style={styles.secondaryButtonText}>Créer un compte</Text>
+                <Text style={styles.secondaryButtonText}>{t("landing.cta.register")}</Text>
               </TouchableOpacity>
             </View>
           </View>
 
           {/* Final CTA Section */}
           <View style={styles.finalCtaSection}>
-            <Text style={styles.finalCtaTitle}>Prêt à commencer ?</Text>
-            <Text style={styles.finalCtaText}>
-              Rejoignez des milliers d'utilisateurs qui font confiance à MediCare+
+            <Text style={styles.finalCtaTitle}>{t("landing.finalCta.title")}</Text>
+            <Text style={[styles.finalCtaText, isRTL && { textAlign: 'right' }]}>
+              {t("landing.finalCta.text")}
             </Text>
             <TouchableOpacity
               style={styles.finalCtaButtonContainer}
@@ -198,8 +214,13 @@ export default function LandingScreen() {
                 end={{ x: 1, y: 0 }}
                 style={styles.finalCtaButton}
               >
-                <Text style={styles.finalCtaButtonText}>Commencer maintenant</Text>
-                <Ionicons name="arrow-forward" size={20} color="white" style={styles.buttonIcon} />
+                <Text style={styles.finalCtaButtonText}>{t("landing.finalCta.button")}</Text>
+                <Ionicons 
+                  name={isRTL ? "arrow-back" : "arrow-forward"} 
+                  size={20} 
+                  color="white" 
+                  style={styles.buttonIcon} 
+                />
               </LinearGradient>
             </TouchableOpacity>
           </View>
@@ -359,5 +380,15 @@ const styles = StyleSheet.create({
     marginTop: 16,
     fontSize: 16,
     color: 'rgba(255, 255, 255, 0.8)',
+  },
+  headerContainer: {
+    position: 'absolute',
+    top: 10,
+    right: 20,
+    zIndex: 10,
+  },
+  headerContainerRTL: {
+    right: undefined,
+    left: 20,
   },
 });

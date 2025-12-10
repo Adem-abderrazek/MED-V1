@@ -16,6 +16,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { sendPatientInvitation } from '../services/api/caregiver';
 import CustomModal from '../components/Modal';
 import InternationalPhoneInput, { PhoneInputValue } from '../components/InternationalPhoneInput';
+import { useLanguage } from '../contexts/LanguageContext';
 
 const { width } = Dimensions.get('window');
 
@@ -38,6 +39,7 @@ interface PatientInvitationResponse {
 
 export default function AddPatientScreen() {
   const router = useRouter();
+  const { t } = useLanguage();
   const [newPatient, setNewPatient] = useState<NewPatient>({
     firstName: '',
     lastName: '',
@@ -106,8 +108,8 @@ export default function AddPatientScreen() {
   const validateForm = () => {
     if (!newPatient.firstName.trim()) {
       showModal(
-        'Erreur',
-        'Le prénom est requis',
+        t('common.errors.genericError'),
+        t('addPatient.errors.firstNameRequired'),
         'error'
       );
       return false;
@@ -115,18 +117,18 @@ export default function AddPatientScreen() {
 
     if (!newPatient.lastName.trim()) {
       showModal(
-        'Erreur',
-        'Le nom est requis',
+        t('common.errors.genericError'),
+        t('addPatient.errors.lastNameRequired'),
         'error'
       );
       return false;
     }
 
     if (!phoneValidation || !phoneValidation.isValid) {
-      setPhoneError("Veuillez saisir un numéro de téléphone valide");
+      setPhoneError(t('common.errors.invalidPhone'));
       showModal(
-        'Erreur',
-        'Veuillez saisir un numéro de téléphone valide',
+        t('common.errors.genericError'),
+        t('common.errors.invalidPhone'),
         'error'
       );
       return false;
@@ -148,11 +150,11 @@ export default function AddPatientScreen() {
     if (!token) {
       console.log('❌ No token available');
       showModal(
-        'Erreur',
-        'Session expirée. Veuillez vous reconnecter.',
+        t('common.errors.genericError'),
+        t('dashboard.patient.errors.sessionExpired'),
         'error',
         {
-          text: 'Se connecter',
+          text: t('auth.login.title'),
           onPress: () => router.push('/login')
         }
       );
@@ -200,11 +202,11 @@ export default function AddPatientScreen() {
         console.log('═══════════════════════════════════════════════════');
         
         showModal(
-          'Invitation envoyée',
-          `Invitation envoyée avec succès au ${newPatient.phoneNumber}.`,
+          t('addPatient.success.title'),
+          t('addPatient.success.message', { phone: newPatient.phoneNumber }),
           'success',
           {
-            text: 'OK',
+            text: t('common.buttons.ok'),
             onPress: () => {
               setModalVisible(false);
               if (router.canGoBack()) {
@@ -217,7 +219,7 @@ export default function AddPatientScreen() {
         );
       } else {
         console.error('❌ Invitation failed:', result.message);
-        throw new Error(result.message || 'Échec de l\'envoi de l\'invitation');
+        throw new Error(result.message || t('addPatient.errors.sendFailed'));
       }
     } catch (error: any) {
       console.error('═══════════════════════════════════════════════════');
@@ -227,8 +229,8 @@ export default function AddPatientScreen() {
       console.error('Error message:', error.message);
       console.error('Error stack:', error.stack);
       showModal(
-        'Erreur',
-        error.message || 'Impossible d\'envoyer l\'invitation',
+        t('common.errors.genericError'),
+        error.message || t('addPatient.errors.sendFailed'),
         'error'
       );
     } finally {
@@ -273,7 +275,7 @@ export default function AddPatientScreen() {
           >
             <Ionicons name="arrow-back" size={24} color="white" />
           </TouchableOpacity>
-          <Text style={[styles.headerTitle, { color: colors.text }]}>Ajouter un Patient</Text>
+          <Text style={[styles.headerTitle, { color: colors.text }]}>{t('addPatient.title')}</Text>
           <View style={styles.headerSpacer} />
         </LinearGradient>
 
@@ -286,7 +288,7 @@ export default function AddPatientScreen() {
           <View style={[styles.card, { backgroundColor: `${colors.primary}10`, borderColor: `${colors.primary}20` }]}>
             <View style={styles.cardHeader}>
               <Ionicons name="person" size={24} color={colors.primary} />
-              <Text style={[styles.cardTitle, { color: colors.text }]}>Informations du Patient</Text>
+              <Text style={[styles.cardTitle, { color: colors.text }]}>{t('addPatient.patientInfo')}</Text>
             </View>
             
             <View style={styles.inputContainer}>
@@ -296,7 +298,7 @@ export default function AddPatientScreen() {
                   borderColor: `${colors.primary}20`,
                   color: colors.text
                 }]}
-                placeholder="Prénom du patient"
+                placeholder={t('addPatient.firstNamePlaceholder')}
                 placeholderTextColor={colors.textTertiary}
                 value={newPatient.firstName}
                 onChangeText={(text) => setNewPatient({...newPatient, firstName: text})}
@@ -310,7 +312,7 @@ export default function AddPatientScreen() {
                   borderColor: `${colors.primary}20`,
                   color: colors.text
                 }]}
-                placeholder="Nom du patient"
+                placeholder={t('addPatient.lastNamePlaceholder')}
                 placeholderTextColor={colors.textTertiary}
                 value={newPatient.lastName}
                 onChangeText={(text) => setNewPatient({...newPatient, lastName: text})}
@@ -325,14 +327,14 @@ export default function AddPatientScreen() {
                 onChange={handlePhoneChange}
                 onBlur={() => {
                   if (phoneValidation && !phoneValidation.isValid) {
-                    setPhoneError("Veuillez saisir un numéro de téléphone valide");
+                    setPhoneError(t('common.errors.invalidPhone'));
                   }
                 }}
                 defaultCountry="TN"
                 required={true}
                 error={phoneError || undefined}
                 theme={userType || 'medecin'}
-                placeholder="Numéro de téléphone du patient"
+                placeholder={t('addPatient.phonePlaceholder')}
                 accessibilityLabel="Patient phone number"
                 testID="add-patient-phone-input"
               />
@@ -356,7 +358,7 @@ export default function AddPatientScreen() {
               >
                 <Ionicons name="send" size={20} color="white" />
                 <Text style={[styles.sendButtonText, { color: colors.text }]}>
-                  {sending ? 'Envoi en cours...' : 'Envoyer l\'Invitation'}
+                  {sending ? t('addPatient.sending') : t('addPatient.sendInvitation')}
                 </Text>
               </LinearGradient>
             </TouchableOpacity>
@@ -369,7 +371,7 @@ export default function AddPatientScreen() {
           }]}>
             <Ionicons name="information-circle" size={20} color={colors.primary} />
             <Text style={[styles.infoText, { color: colors.textSecondary }]}>
-              Le patient recevra un SMS avec le lien de téléchargement de l'application et ses identifiants de connexion.
+              {t('addPatient.infoMessage')}
             </Text>
           </View>
         </ScrollView>

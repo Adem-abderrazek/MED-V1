@@ -15,6 +15,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { getUserProfile, updateUserProfile } from '../services/api/common';
 import FeedbackModal from '../components/FeedbackModal';
+import { useLanguage } from '../contexts/LanguageContext';
+import LanguageSwitcher from '../components/LanguageSwitcher';
 
 interface UserProfile {
   id: string;
@@ -33,6 +35,7 @@ interface UserProfile {
 
 export default function DoctorProfileScreen() {
   const router = useRouter();
+  const { t, currentLanguage, isRTL } = useLanguage();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -123,12 +126,18 @@ export default function DoctorProfileScreen() {
     loadProfile();
   }, [loadProfile]);
 
+  // Force re-render when language changes
+  useEffect(() => {
+    console.log(`🌐 Doctor profile language changed to: ${currentLanguage}, RTL: ${isRTL}`);
+    // This effect ensures the component re-renders when language changes
+  }, [currentLanguage, isRTL]);
+
   const handleLogout = () => {
     setFeedbackModal({
       visible: true,
       type: 'confirm',
-      title: 'Déconnexion',
-      message: 'Êtes-vous sûr de vouloir vous déconnecter ?',
+      title: t('profile.logout.title'),
+      message: t('profile.logout.message'),
       onConfirm: async () => {
         await AsyncStorage.removeItem('userToken');
         await AsyncStorage.removeItem('userData');
@@ -174,7 +183,7 @@ export default function DoctorProfileScreen() {
       <View style={styles.container}>
         <LinearGradient colors={["#1a1a2e", "#16213e", "#0f3460"]} style={styles.background}>
           <View style={styles.loadingContainer}>
-            <Text style={styles.loadingText}>Chargement...</Text>
+            <Text style={styles.loadingText}>{t('common.loading')}</Text>
           </View>
         </LinearGradient>
       </View>
@@ -184,7 +193,10 @@ export default function DoctorProfileScreen() {
   return (
     <>
       <Stack.Screen options={{ headerShown: false }} />
-      <SafeAreaView style={styles.container}>
+      <SafeAreaView 
+        style={styles.container}
+        key={`doctor-profile-${currentLanguage}-${isRTL}`}
+      >
         <LinearGradient colors={["#1a1a2e", "#16213e", "#0f3460"]} style={styles.background}>
           {/* Header */}
           <LinearGradient
@@ -202,7 +214,7 @@ export default function DoctorProfileScreen() {
           }}>
             <Ionicons name="arrow-back" size={24} color="white" />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Profil</Text>
+          <Text style={styles.headerTitle}>{t('profile.headerTitle')}</Text>
           <View style={styles.headerSpacer} />
         </LinearGradient>
 
@@ -247,7 +259,7 @@ export default function DoctorProfileScreen() {
                   style={styles.editProfileGradient}
                 >
                   <Ionicons name="create-outline" size={18} color="#4facfe" />
-                  <Text style={styles.editProfileText}>Modifier le profil</Text>
+                  <Text style={styles.editProfileText}>{t('profile.editProfile')}</Text>
                 </LinearGradient>
               </TouchableOpacity>
             </LinearGradient>
@@ -255,7 +267,7 @@ export default function DoctorProfileScreen() {
 
           {/* Personal Information Section */}
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Informations personnelles</Text>
+            <Text style={styles.sectionTitle}>{t('profile.personalInfoSection')}</Text>
             <View style={styles.sectionCard}>
               <LinearGradient
                 colors={["rgba(255, 255, 255, 0.1)", "rgba(255, 255, 255, 0.05)"]}
@@ -263,7 +275,7 @@ export default function DoctorProfileScreen() {
               >
                 {renderSettingItem(
                   'call',
-                  'Téléphone',
+                  t('common.labels.phone'),
                   profile?.phoneNumber,
                   () => router.push('/edit-profile' as any),
                   false
@@ -274,7 +286,7 @@ export default function DoctorProfileScreen() {
 
           {/* Preferences Section */}
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Préférences</Text>
+            <Text style={styles.sectionTitle}>{t('profile.preferencesSection')}</Text>
             <View style={styles.sectionCard}>
               <LinearGradient
                 colors={["rgba(255, 255, 255, 0.1)", "rgba(255, 255, 255, 0.05)"]}
@@ -282,8 +294,8 @@ export default function DoctorProfileScreen() {
               >
                 {renderSettingItem(
                   'notifications',
-                  'Notifications',
-                  'Recevoir les alertes',
+                  t('profile.notifications.title'),
+                  t('profile.notifications.subtitle'),
                   undefined,
                   false,
                   <Switch
@@ -293,15 +305,10 @@ export default function DoctorProfileScreen() {
                     thumbColor={notificationsEnabled ? '#fff' : '#f4f3f4'}
                   />
                 )}
-                {renderSettingItem(
-                  'language',
-                  'Langue',
-                  profile?.language === 'fr' ? 'Français' : profile?.language === 'ar' ? 'العربية' : 'English',
-                  () => {}
-                )}
+                <LanguageSwitcher />
                 {renderSettingItem(
                   'time',
-                  'Fuseau horaire',
+                  t('common.labels.timezone'),
                   profile?.timezone || 'Africa/Tunis',
                   () => {},
                   false
@@ -312,7 +319,7 @@ export default function DoctorProfileScreen() {
 
           {/* Security Section */}
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Sécurité</Text>
+            <Text style={styles.sectionTitle}>{t('profile.securitySection')}</Text>
             <View style={styles.sectionCard}>
               <LinearGradient
                 colors={["rgba(255, 255, 255, 0.1)", "rgba(255, 255, 255, 0.05)"]}
@@ -320,14 +327,14 @@ export default function DoctorProfileScreen() {
               >
                 {renderSettingItem(
                   'lock-closed',
-                  'Changer le mot de passe',
-                  'Modifier votre mot de passe',
+                  t('profile.changePassword.title'),
+                  t('profile.changePassword.subtitle'),
                   () => router.push('/forgot-password')
                 )}
                 {renderSettingItem(
                   'shield-checkmark',
-                  'Authentification à deux facteurs',
-                  'Désactivée',
+                  t('profile.twoFactor.title'),
+                  t('profile.twoFactor.disabled'),
                   () => {},
                   false
                 )}
@@ -337,7 +344,7 @@ export default function DoctorProfileScreen() {
 
           {/* Legal Section */}
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Légal</Text>
+            <Text style={styles.sectionTitle}>{t('profile.legalSection')}</Text>
             <View style={styles.sectionCard}>
               <LinearGradient
                 colors={["rgba(255, 255, 255, 0.1)", "rgba(255, 255, 255, 0.05)"]}
@@ -345,20 +352,20 @@ export default function DoctorProfileScreen() {
               >
                 {renderSettingItem(
                   'document-text',
-                  'Conditions d\'utilisation',
-                  'Consulter les CGU',
+                  t('profile.terms.title'),
+                  t('profile.terms.subtitle'),
                   () => router.push('/terms' as any)
                 )}
                 {renderSettingItem(
                   'shield',
-                  'Politique de confidentialité',
-                  'Protection de vos données',
+                  t('profile.privacy.title'),
+                  t('profile.privacy.subtitle'),
                   () => router.push('/privacy-policy' as any)
                 )}
                 {renderSettingItem(
                   'information-circle',
-                  'À propos de MediCare',
-                  'Version 1.0.0',
+                  t('profile.about.title'),
+                  t('profile.about.version'),
                   () => {},
                   false
                 )}
@@ -373,7 +380,7 @@ export default function DoctorProfileScreen() {
               style={styles.logoutGradient}
             >
               <Ionicons name="log-out-outline" size={22} color="white" />
-              <Text style={styles.logoutText}>Se déconnecter</Text>
+              <Text style={styles.logoutText}>{t('profile.logout.button')}</Text>
             </LinearGradient>
           </TouchableOpacity>
 

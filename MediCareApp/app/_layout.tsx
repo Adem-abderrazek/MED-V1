@@ -2,7 +2,7 @@ import { Stack, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import React, { useEffect } from 'react';
-import { AppState, AppStateStatus, Linking, Platform } from 'react-native';
+import { AppState, AppStateStatus, Linking, Platform, View, I18nManager } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import notifee, { EventType } from '@notifee/react-native';
 import { notificationService } from '../services/notificationService';
@@ -10,6 +10,8 @@ import { networkMonitor } from '../services/networkMonitor';
 import localReminderService from '../services/localReminderService';
 import notifeeAlarmService from '../services/notifeeAlarmService';
 import * as apiService from '../services/api/patient';
+import { LanguageProvider, useLanguage } from '../contexts/LanguageContext';
+import '../config/i18n'; // Initialize i18n
 
 // Register background event handler for notifee (handles events when app is killed/background)
 notifee.onBackgroundEvent(async ({ type, detail }) => {
@@ -47,8 +49,9 @@ notifee.onBackgroundEvent(async ({ type, detail }) => {
   }
 });
 
-export default function RootLayout() {
+function AppContent() {
   const router = useRouter();
+  const { isRTL, currentLanguage, t } = useLanguage();
 
   useEffect(() => {
     console.log('🚀 Initializing notification and network systems...');
@@ -284,7 +287,10 @@ export default function RootLayout() {
   }, [router]);
 
   return (
-    <SafeAreaProvider>
+    <View 
+      style={{ flex: 1, direction: isRTL ? 'rtl' : 'ltr' }}
+      key={`app-${currentLanguage}-${isRTL}`} // Force re-render when RTL changes
+    >
       <Stack screenOptions={{ animation: 'none' }}>
         {/* Auth Routes */}
         <Stack.Screen name="index" options={{ headerShown: false }} />
@@ -323,6 +329,16 @@ export default function RootLayout() {
       </Stack>
 
       <StatusBar style="dark" translucent={false} backgroundColor="#FFFFFF" />
-    </SafeAreaProvider>
+    </View>
+  );
+}
+
+export default function RootLayout() {
+  return (
+    <LanguageProvider>
+      <SafeAreaProvider>
+        <AppContent />
+      </SafeAreaProvider>
+    </LanguageProvider>
   );
 }

@@ -8,6 +8,7 @@ import {
   Platform
 } from "react-native";
 import DateTimePicker from '@react-native-community/datetimepicker';
+import { useLanguage } from '../contexts/LanguageContext';
 
 interface DatePickerProps {
   selectedDate: Date;
@@ -15,12 +16,14 @@ interface DatePickerProps {
   placeholder?: string;
 }
 
-export default function DatePicker({ selectedDate, onDateChange, placeholder = "Date de naissance" }: DatePickerProps) {
+export default function DatePicker({ selectedDate, onDateChange, placeholder }: DatePickerProps) {
+  const { t } = useLanguage();
+  const defaultPlaceholder = placeholder || t('common.labels.dateOfBirth');
   const [showPicker, setShowPicker] = useState(false);
 
   const formatDate = (date: Date) => {
     if (!date) {
-      return placeholder;
+      return defaultPlaceholder;
     }
     // Check if date is today (not yet selected)
     const today = new Date();
@@ -29,10 +32,10 @@ export default function DatePicker({ selectedDate, onDateChange, placeholder = "
     selectedDate.setHours(0, 0, 0, 0);
     
     if (selectedDate.getTime() === today.getTime()) {
-      return placeholder;
+      return defaultPlaceholder;
     }
     
-    return date.toLocaleDateString('fr-FR', {
+    return date.toLocaleDateString(undefined, {
       day: '2-digit',
       month: '2-digit',
       year: 'numeric'

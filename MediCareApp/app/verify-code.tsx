@@ -17,9 +17,11 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import VerificationModal from "../components/VerificationModal";
 import { verifyResetCode, requestPasswordReset } from '../services/api/common';
+import { useLanguage } from '../contexts/LanguageContext';
 
 export default function VerifyCodeScreen() {
   const router = useRouter();
+  const { t, isRTL } = useLanguage();
   const params = useLocalSearchParams();
   const { emailOrPhone, method } = params as { emailOrPhone: string; method: string };
   
@@ -104,7 +106,7 @@ export default function VerifyCodeScreen() {
     console.log('🔢 Code:', codeToVerify);
     
     if (codeToVerify.length !== 4) {
-      showModal("error", "Code incomplet", "Veuillez saisir le code de 4 chiffres");
+      showModal("error", t("auth.verifyCode.errors.invalidCode"), t("auth.verifyCode.errors.invalidCodeMessage"));
       return;
     }
 
@@ -119,7 +121,7 @@ export default function VerifyCodeScreen() {
       setIsLoading(false);
       
       if (result.success) {
-        showModal("success", "Code vérifié!", "Votre code de vérification est correct.");
+        showModal("success", t("auth.verifyCode.success.title"), t("auth.verifyCode.success.message"));
         // Navigate to reset password screen
         setTimeout(() => {
           setModalVisible(false);
@@ -129,7 +131,7 @@ export default function VerifyCodeScreen() {
           });
         }, 1500);
       } else {
-        showModal("error", "Code invalide", "Le code de vérification est incorrect. Veuillez réessayer.");
+        showModal("error", t("auth.verifyCode.errors.invalidCode"), t("auth.verifyCode.errors.invalidCodeMessage"));
         setCode(['', '', '', '', '', '']);
         inputRefs.current[0]?.focus();
       }
@@ -137,14 +139,14 @@ export default function VerifyCodeScreen() {
       setIsLoading(false);
       console.error('Verification error:', error);
       
-      let errorMessage = "Une erreur est survenue lors de la vérification du code.";
+      let errorMessage = t("auth.verifyCode.errors.errorMessage");
       if (error.response?.data?.message) {
         errorMessage = error.response.data.message;
       } else if (error.message) {
         errorMessage = error.message;
       }
       
-      showModal("error", "Erreur", errorMessage);
+      showModal("error", t("auth.verifyCode.errors.error"), errorMessage);
     }
   };
 
@@ -156,14 +158,14 @@ export default function VerifyCodeScreen() {
       const result = await requestPasswordReset(emailOrPhone);
 
       if (result.success) {
-        showModal("success", "Code renvoyé!", "Un nouveau code de vérification a été envoyé.");
+        showModal("success", t("auth.verifyCode.success.title"), t("auth.verifyCode.success.message"));
         startResendCooldown();
       } else {
-        showModal("error", "Erreur", result.message || "Impossible de renvoyer le code.");
+        showModal("error", t("auth.verifyCode.errors.error"), result.message || t("auth.verifyCode.errors.errorMessage"));
       }
     } catch (error: any) {
       console.error('Resend code error:', error);
-      showModal("error", "Erreur", "Impossible de renvoyer le code. Veuillez réessayer.");
+      showModal("error", t("auth.verifyCode.errors.error"), t("auth.verifyCode.errors.errorMessage"));
     }
   };
 
@@ -205,7 +207,7 @@ export default function VerifyCodeScreen() {
             >
               <Ionicons name="arrow-back" size={24} color={colors.text} />
             </TouchableOpacity>
-            <Text style={styles(colors).headerTitle}>Vérification</Text>
+            <Text style={styles(colors).headerTitle}>{t("auth.verifyCode.title")}</Text>
           </View>
 
           {/* Form */}
@@ -219,9 +221,9 @@ export default function VerifyCodeScreen() {
               </LinearGradient>
             </View>
 
-            <Text style={styles(colors).title}>Vérifiez votre code</Text>
+            <Text style={styles(colors).title}>{t("auth.verifyCode.title")}</Text>
             <Text style={styles(colors).subtitle}>
-              Nous avons envoyé un code de vérification à{"\n"}
+              {t("auth.verifyCode.subtitle")}{"\n"}
               <Text style={styles(colors).highlight}>{maskEmailOrPhone(emailOrPhone)}</Text>
             </Text>
 
@@ -262,7 +264,7 @@ export default function VerifyCodeScreen() {
                 style={styles(colors).verifyButtonGradient}
               >
                 <Text style={styles(colors).verifyButtonText}>
-                  {isLoading ? "Vérification..." : "Vérifier le code"}
+                  {isLoading ? t("auth.verifyCode.verifying") : t("auth.verifyCode.verifyButton")}
                 </Text>
                 {!isLoading && <Ionicons name="checkmark" size={20} color={colors.text} style={styles(colors).buttonIcon} />}
               </LinearGradient>
@@ -270,7 +272,7 @@ export default function VerifyCodeScreen() {
 
             {/* Resend Code */}
             <View style={styles(colors).resendContainer}>
-              <Text style={styles(colors).resendText}>Vous n'avez pas reçu le code ? </Text>
+              <Text style={styles(colors).resendText}>{t("auth.verifyCode.resendText")} </Text>
               <TouchableOpacity
                 onPress={handleResendCode}
                 disabled={resendCooldown > 0}
@@ -280,7 +282,7 @@ export default function VerifyCodeScreen() {
                   styles(colors).resendLink,
                   resendCooldown > 0 && styles(colors).resendLinkDisabled
                 ]}>
-                  {resendCooldown > 0 ? `Renvoyer (${resendCooldown}s)` : "Renvoyer"}
+                  {resendCooldown > 0 ? `${t("auth.verifyCode.resendButton")} (${resendCooldown}s)` : t("auth.verifyCode.resendButton")}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -291,7 +293,7 @@ export default function VerifyCodeScreen() {
               onPress={() => router.replace('/forgot-password')}
             >
               <Ionicons name="arrow-back" size={16} color={colors.textTertiary} />
-              <Text style={styles(colors).backText}>Modifier l'email/téléphone</Text>
+              <Text style={styles(colors).backText}>{t("auth.verifyCode.backText")}</Text>
             </TouchableOpacity>
           </View>
         </KeyboardAvoidingView>

@@ -10,9 +10,11 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter, Stack } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useLanguage } from '../contexts/LanguageContext';
 
 export default function PrivacyPolicyScreen() {
   const router = useRouter();
+  const { t, isRTL } = useLanguage();
 
   return (
     <>
@@ -35,7 +37,7 @@ export default function PrivacyPolicyScreen() {
           }}>
             <Ionicons name="arrow-back" size={24} color="white" />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Politique de confidentialité</Text>
+          <Text style={styles.headerTitle}>{t('privacy.title')}</Text>
           <View style={styles.headerSpacer} />
         </LinearGradient>
 
@@ -49,115 +51,113 @@ export default function PrivacyPolicyScreen() {
                 <Ionicons name="shield-checkmark" size={48} color="#10B981" />
               </View>
               
-              <Text style={styles.lastUpdated}>Dernière mise à jour: Octobre 2024</Text>
+              <Text style={styles.lastUpdated}>{t('privacy.lastUpdated')}</Text>
 
               <View style={styles.textSection}>
-                <Text style={styles.sectionTitle}>Introduction</Text>
+                <Text style={styles.sectionTitle}>{t('privacy.sections.introduction.title')}</Text>
                 <Text style={styles.paragraph}>
-                  MediCare s'engage à protéger votre vie privée et la confidentialité de vos données personnelles et médicales. 
-                  Cette politique explique comment nous collectons, utilisons et protégeons vos informations.
+                  {t('privacy.sections.introduction.content')}
                 </Text>
               </View>
 
               <View style={styles.textSection}>
-                <Text style={styles.sectionTitle}>1. Données collectées</Text>
+                <Text style={styles.sectionTitle}>{t('privacy.sections.dataCollected.title')}</Text>
                 <Text style={styles.paragraph}>
-                  Nous collectons les informations suivantes:
+                  {t('privacy.sections.dataCollected.content')}
                 </Text>
-                <Text style={styles.bulletPoint}>• Informations d'identification (nom, prénom, email, téléphone)</Text>
-                <Text style={styles.bulletPoint}>• Données médicales (prescriptions, médicaments, rappels)</Text>
-                <Text style={styles.bulletPoint}>• Données de connexion (adresse IP, type d'appareil)</Text>
-                <Text style={styles.bulletPoint}>• Messages vocaux et communications</Text>
+                <Text style={styles.bulletPoint}>• {t('privacy.sections.dataCollected.points.identification')}</Text>
+                <Text style={styles.bulletPoint}>• {t('privacy.sections.dataCollected.points.medical')}</Text>
+                <Text style={styles.bulletPoint}>• {t('privacy.sections.dataCollected.points.connection')}</Text>
+                <Text style={styles.bulletPoint}>• {t('privacy.sections.dataCollected.points.messages')}</Text>
               </View>
 
               <View style={styles.textSection}>
-                <Text style={styles.sectionTitle}>2. Utilisation des données</Text>
+                <Text style={styles.sectionTitle}>{t('privacy.sections.dataUsage.title')}</Text>
                 <Text style={styles.paragraph}>
-                  Vos données sont utilisées pour:
+                  {t('privacy.sections.dataUsage.content')}
                 </Text>
-                <Text style={styles.bulletPoint}>• Fournir les services de l'application</Text>
-                <Text style={styles.bulletPoint}>• Envoyer des rappels de médicaments</Text>
-                <Text style={styles.bulletPoint}>• Faciliter la communication avec les professionnels de santé</Text>
-                <Text style={styles.bulletPoint}>• Améliorer nos services</Text>
+                <Text style={styles.bulletPoint}>• {t('privacy.sections.dataUsage.points.services')}</Text>
+                <Text style={styles.bulletPoint}>• {t('privacy.sections.dataUsage.points.reminders')}</Text>
+                <Text style={styles.bulletPoint}>• {t('privacy.sections.dataUsage.points.communication')}</Text>
+                <Text style={styles.bulletPoint}>• {t('privacy.sections.dataUsage.points.improvement')}</Text>
               </View>
 
               <View style={styles.textSection}>
-                <Text style={styles.sectionTitle}>3. Protection des données</Text>
+                <Text style={styles.sectionTitle}>{t('privacy.sections.dataProtection.title')}</Text>
                 <Text style={styles.paragraph}>
-                  Nous mettons en œuvre des mesures de sécurité strictes:
+                  {t('privacy.sections.dataProtection.content')}
                 </Text>
-                <Text style={styles.bulletPoint}>• Chiffrement des données en transit et au repos</Text>
-                <Text style={styles.bulletPoint}>• Accès sécurisé par authentification</Text>
-                <Text style={styles.bulletPoint}>• Serveurs sécurisés et sauvegardés régulièrement</Text>
-                <Text style={styles.bulletPoint}>• Audits de sécurité réguliers</Text>
+                <Text style={styles.bulletPoint}>• {t('privacy.sections.dataProtection.points.encryption')}</Text>
+                <Text style={styles.bulletPoint}>• {t('privacy.sections.dataProtection.points.authentication')}</Text>
+                <Text style={styles.bulletPoint}>• {t('privacy.sections.dataProtection.points.servers')}</Text>
+                <Text style={styles.bulletPoint}>• {t('privacy.sections.dataProtection.points.audits')}</Text>
               </View>
 
               <View style={styles.textSection}>
-                <Text style={styles.sectionTitle}>4. Partage des données</Text>
+                <Text style={styles.sectionTitle}>{t('privacy.sections.dataSharing.title')}</Text>
                 <Text style={styles.paragraph}>
-                  Vos données ne sont partagées qu'avec:
+                  {t('privacy.sections.dataSharing.content')}
                 </Text>
-                <Text style={styles.bulletPoint}>• Les professionnels de santé autorisés (médecins, tuteurs)</Text>
-                <Text style={styles.bulletPoint}>• Les services techniques nécessaires au fonctionnement</Text>
-                <Text style={styles.paragraph} style={{ marginTop: 12 }}>
-                  Nous ne vendons jamais vos données personnelles à des tiers.
-                </Text>
-              </View>
-
-              <View style={styles.textSection}>
-                <Text style={styles.sectionTitle}>5. Vos droits</Text>
-                <Text style={styles.paragraph}>
-                  Conformément à la réglementation, vous disposez des droits suivants:
-                </Text>
-                <Text style={styles.bulletPoint}>• Droit d'accès à vos données</Text>
-                <Text style={styles.bulletPoint}>• Droit de rectification</Text>
-                <Text style={styles.bulletPoint}>• Droit à l'effacement</Text>
-                <Text style={styles.bulletPoint}>• Droit à la portabilité des données</Text>
-                <Text style={styles.bulletPoint}>• Droit d'opposition au traitement</Text>
-              </View>
-
-              <View style={styles.textSection}>
-                <Text style={styles.sectionTitle}>6. Conservation des données</Text>
-                <Text style={styles.paragraph}>
-                  Vos données sont conservées:
-                </Text>
-                <Text style={styles.bulletPoint}>• Pendant toute la durée d'utilisation du service</Text>
-                <Text style={styles.bulletPoint}>• 3 ans après la dernière connexion (données médicales)</Text>
-                <Text style={styles.bulletPoint}>• Selon les obligations légales applicables</Text>
-              </View>
-
-              <View style={styles.textSection}>
-                <Text style={styles.sectionTitle}>7. Cookies et technologies similaires</Text>
-                <Text style={styles.paragraph}>
-                  Nous utilisons des technologies pour améliorer votre expérience:
-                </Text>
-                <Text style={styles.bulletPoint}>• Tokens de session pour la connexion sécurisée</Text>
-                <Text style={styles.bulletPoint}>• Stockage local pour les préférences</Text>
-                <Text style={styles.bulletPoint}>• Notifications push (avec votre consentement)</Text>
-              </View>
-
-              <View style={styles.textSection}>
-                <Text style={styles.sectionTitle}>8. Modifications de la politique</Text>
-                <Text style={styles.paragraph}>
-                  Nous pouvons modifier cette politique de confidentialité. Les modifications importantes 
-                  vous seront notifiées par email ou notification dans l'application.
+                <Text style={styles.bulletPoint}>• {t('privacy.sections.dataSharing.points.professionals')}</Text>
+                <Text style={styles.bulletPoint}>• {t('privacy.sections.dataSharing.points.technical')}</Text>
+                <Text style={[styles.paragraph, { marginTop: 12 }]}>
+                  {t('privacy.sections.dataSharing.noSale')}
                 </Text>
               </View>
 
               <View style={styles.textSection}>
-                <Text style={styles.sectionTitle}>9. Contact</Text>
+                <Text style={styles.sectionTitle}>{t('privacy.sections.rights.title')}</Text>
                 <Text style={styles.paragraph}>
-                  Pour toute question sur la confidentialité ou pour exercer vos droits:
+                  {t('privacy.sections.rights.content')}
                 </Text>
-                <Text style={styles.bulletPoint}>• Email: privacy@medicare.tn</Text>
-                <Text style={styles.bulletPoint}>• Téléphone: +216 XX XXX XXX</Text>
-                <Text style={styles.bulletPoint}>• Adresse: Tunis, Tunisie</Text>
+                <Text style={styles.bulletPoint}>• {t('privacy.sections.rights.points.access')}</Text>
+                <Text style={styles.bulletPoint}>• {t('privacy.sections.rights.points.rectification')}</Text>
+                <Text style={styles.bulletPoint}>• {t('privacy.sections.rights.points.erasure')}</Text>
+                <Text style={styles.bulletPoint}>• {t('privacy.sections.rights.points.portability')}</Text>
+                <Text style={styles.bulletPoint}>• {t('privacy.sections.rights.points.opposition')}</Text>
+              </View>
+
+              <View style={styles.textSection}>
+                <Text style={styles.sectionTitle}>{t('privacy.sections.retention.title')}</Text>
+                <Text style={styles.paragraph}>
+                  {t('privacy.sections.retention.content')}
+                </Text>
+                <Text style={styles.bulletPoint}>• {t('privacy.sections.retention.points.duration')}</Text>
+                <Text style={styles.bulletPoint}>• {t('privacy.sections.retention.points.medical')}</Text>
+                <Text style={styles.bulletPoint}>• {t('privacy.sections.retention.points.legal')}</Text>
+              </View>
+
+              <View style={styles.textSection}>
+                <Text style={styles.sectionTitle}>{t('privacy.sections.cookies.title')}</Text>
+                <Text style={styles.paragraph}>
+                  {t('privacy.sections.cookies.content')}
+                </Text>
+                <Text style={styles.bulletPoint}>• {t('privacy.sections.cookies.points.tokens')}</Text>
+                <Text style={styles.bulletPoint}>• {t('privacy.sections.cookies.points.storage')}</Text>
+                <Text style={styles.bulletPoint}>• {t('privacy.sections.cookies.points.notifications')}</Text>
+              </View>
+
+              <View style={styles.textSection}>
+                <Text style={styles.sectionTitle}>{t('privacy.sections.modifications.title')}</Text>
+                <Text style={styles.paragraph}>
+                  {t('privacy.sections.modifications.content')}
+                </Text>
+              </View>
+
+              <View style={styles.textSection}>
+                <Text style={styles.sectionTitle}>{t('privacy.sections.contact.title')}</Text>
+                <Text style={styles.paragraph}>
+                  {t('privacy.sections.contact.content')}
+                </Text>
+                <Text style={styles.bulletPoint}>• {t('privacy.sections.contact.email')}</Text>
+                <Text style={styles.bulletPoint}>• {t('privacy.sections.contact.phone')}</Text>
+                <Text style={styles.bulletPoint}>• {t('privacy.sections.contact.address')}</Text>
               </View>
 
               <View style={styles.certificationBanner}>
                 <Ionicons name="shield-checkmark" size={24} color="#10B981" />
                 <Text style={styles.certificationText}>
-                  Conforme aux normes de protection des données de santé
+                  {t('privacy.sections.certification.text')}
                 </Text>
               </View>
             </LinearGradient>

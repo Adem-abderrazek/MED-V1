@@ -1,0 +1,676 @@
+{
+  "common": {
+    "buttons": {
+      "submit": "Soumettre",
+      "cancel": "Annuler",
+      "confirm": "Confirmer",
+      "delete": "Supprimer",
+      "save": "Enregistrer",
+      "edit": "Modifier",
+      "close": "Fermer",
+      "ok": "OK",
+      "yes": "Oui",
+      "no": "Non",
+      "back": "Retour",
+      "next": "Suivant",
+      "skip": "Passer",
+      "continue": "Continuer",
+      "loading": "Chargement...",
+      "retry": "Réessayer"
+    },
+    "labels": {
+      "email": "Email",
+      "phone": "Téléphone",
+      "password": "Mot de passe",
+      "confirmPassword": "Confirmer le mot de passe",
+      "firstName": "Prénom",
+      "lastName": "Nom",
+      "name": "Nom",
+      "dateOfBirth": "Date de naissance",
+      "role": "Rôle",
+      "language": "Langue",
+      "timezone": "Fuseau horaire"
+    },
+    "errors": {
+      "required": "Ce champ est obligatoire",
+      "invalidEmail": "Veuillez saisir une adresse email valide",
+      "invalidPhone": "Veuillez saisir un numéro de téléphone valide",
+      "passwordMismatch": "Les mots de passe ne correspondent pas",
+      "weakPassword": "Le mot de passe est trop faible",
+      "genericError": "Une erreur est survenue",
+      "networkError": "Erreur réseau. Veuillez vérifier votre connexion.",
+      "tryAgain": "Veuillez réessayer"
+    },
+    "success": {
+      "saved": "Enregistré avec succès",
+      "deleted": "Supprimé avec succès",
+      "updated": "Mis à jour avec succès"
+    },
+    "buttons": {
+      "info": "Information"
+    }
+  },
+  "landing": {
+    "appName": "MediCare+",
+    "slogan": "Votre santé, notre priorité",
+    "subSlogan": "La plateforme qui connecte patients, tuteurs et médecins pour un suivi médical moderne et sécurisé",
+    "loading": "Chargement...",
+    "cta": {
+      "login": "Se connecter",
+      "register": "Créer un compte",
+      "getStarted": "Commencer maintenant"
+    },
+    "features": {
+      "automaticReminders": {
+        "title": "Rappels automatiques",
+        "description": "Recevez des notifications pour vos médicaments"
+      },
+      "secureCommunication": {
+        "title": "Communication sécurisée",
+        "description": "Échangez avec votre médecin en toute confidentialité"
+      },
+      "protectedData": {
+        "title": "Données protégées",
+        "description": "Vos informations médicales sont sécurisées"
+      },
+      "intuitiveInterface": {
+        "title": "Interface intuitive",
+        "description": "Une app simple et accessible pour tous"
+      }
+    },
+    "testimonials": {
+      "patient": {
+        "name": "Marie Dubois",
+        "role": "Patient",
+        "text": "MediCare+ a transformé ma gestion des médicaments. Je ne rate plus jamais un traitement !",
+        "rating": 5
+      },
+      "doctor": {
+        "name": "Dr. Pierre Martin",
+        "role": "Médecin",
+        "text": "Une plateforme exceptionnelle pour suivre mes patients et leurs traitements.",
+        "rating": 5
+      },
+      "caregiver": {
+        "name": "Sophie Laurent",
+        "role": "Tutrice",
+        "text": "Parfait pour gérer les médicaments de ma mère âgée. Interface très simple.",
+        "rating": 5
+      }
+    },
+    "finalCta": {
+      "title": "Prêt à commencer ?",
+      "text": "Rejoignez des milliers d'utilisateurs qui font confiance à MediCare+",
+      "button": "Commencer maintenant"
+    }
+  },
+  "auth": {
+    "login": {
+      "title": "Bon retour !",
+      "subtitle": "Connectez-vous à votre compte MediCare+",
+      "headerTitle": "Connexion",
+      "emailPlaceholder": "Adresse e-mail",
+      "phonePlaceholder": "Numéro de téléphone",
+      "passwordPlaceholder": "Mot de passe",
+      "rememberMe": "Se souvenir de moi",
+      "forgotPassword": "Mot de passe oublié ?",
+      "loginButton": "Se connecter",
+      "loggingIn": "Connexion...",
+      "noAccount": "Pas encore de compte ? ",
+      "createAccount": "Créer un compte",
+      "errors": {
+        "missingFields": "Champs manquants",
+        "missingFieldsMessage": "Veuillez remplir tous les champs",
+        "invalidPhone": "Veuillez saisir un numéro de téléphone valide",
+        "loginError": "Erreur de connexion",
+        "invalidCredentials": "Email ou mot de passe incorrect.",
+        "connectionError": "Une erreur est survenue lors de la connexion.",
+        "unsupportedUserType": "Type d'utilisateur non supporté",
+        "unsupportedUserTypeMessage": "Cette version de l'application ne supporte pas encore votre type de compte."
+      },
+      "success": {
+        "title": "Connexion réussie!",
+        "message": "Bienvenue {{firstName}}! Vous êtes maintenant connecté à votre compte MediCare+."
+      }
+    },
+    "register": {
+      "title": "Créer un compte",
+      "subtitle": "Rejoignez MediCare+ et prenez le contrôle de votre santé",
+      "headerTitle": "Inscription",
+      "firstNamePlaceholder": "Prénom",
+      "lastNamePlaceholder": "Nom",
+      "emailPlaceholder": "Adresse e-mail",
+      "phonePlaceholder": "Numéro de téléphone",
+      "passwordPlaceholder": "Mot de passe",
+      "confirmPasswordPlaceholder": "Confirmer le mot de passe",
+      "dateOfBirthPlaceholder": "Date de naissance",
+      "passwordStrength": {
+        "weak": "Faible",
+        "medium": "Moyen",
+        "strong": "Fort"
+      },
+      "passwordRequirements": {
+        "title": "Le mot de passe doit contenir :",
+        "minLength": "Au moins 6 caractères",
+        "uppercase": "Une majuscule",
+        "lowercase": "Une minuscule",
+        "number": "Un chiffre"
+      },
+      "terms": {
+        "text": "En créant un compte, vous acceptez nos",
+        "termsLink": "Conditions d'utilisation",
+        "and": "et notre",
+        "privacyLink": "Politique de confidentialité"
+      },
+      "registerButton": "Créer un compte",
+      "registering": "Création du compte...",
+      "creatingAccount": "Création du compte...",
+      "registering": "Création du compte...",
+      "hasAccount": "Vous avez déjà un compte ? ",
+      "signIn": "Se connecter",
+      "errors": {
+        "missingFields": "Champs manquants",
+        "missingFieldsMessage": "Veuillez remplir tous les champs obligatoires",
+        "invalidDate": "Date de naissance invalide",
+        "invalidDateMessage": "Veuillez sélectionner votre date de naissance",
+        "invalidEmail": "Email invalide",
+        "invalidEmailMessage": "Veuillez saisir une adresse email valide",
+        "invalidPhone": "Numéro invalide",
+        "invalidPhoneMessage": "Veuillez saisir un numéro de téléphone valide",
+        "passwordMismatch": "Mots de passe différents",
+        "passwordMismatchMessage": "Les mots de passe ne correspondent pas",
+        "weakPassword": "Mot de passe faible",
+        "weakPasswordMessage": "Le mot de passe doit contenir au moins 6 caractères",
+        "weakPasswordDetails": "Le mot de passe doit contenir au moins une majuscule, une minuscule et un chiffre",
+        "invalidAge": "Âge invalide",
+        "invalidAgeMessage": "Vous devez avoir au moins 13 ans pour créer un compte",
+        "registrationError": "Erreur d'inscription",
+        "registrationErrorMessage": "Une erreur est survenue lors de la création du compte."
+      },
+      "success": {
+        "title": "Compte créé!",
+        "message": "Votre compte a été créé avec succès. Vous pouvez maintenant vous connecter."
+      }
+    },
+    "forgotPassword": {
+      "title": "Réinitialiser votre mot de passe",
+      "subtitle": "Saisissez votre email ou numéro de téléphone pour recevoir un code de vérification",
+      "headerTitle": "Mot de passe oublié",
+      "emailPlaceholder": "Adresse e-mail",
+      "phonePlaceholder": "Numéro de téléphone",
+      "infoText": "Le code de vérification sera envoyé par SMS à votre numéro de téléphone",
+      "sendButton": "Envoyer le code",
+      "sending": "Envoi en cours...",
+      "rememberPassword": "Vous vous souvenez de votre mot de passe ? ",
+      "signIn": "Se connecter",
+      "errors": {
+        "missingField": "Champ manquant",
+        "missingEmail": "Veuillez saisir votre email",
+        "invalidEmail": "Email invalide",
+        "invalidEmailMessage": "Veuillez saisir une adresse email valide",
+        "invalidPhone": "Numéro invalide",
+        "invalidPhoneMessage": "Veuillez saisir un numéro de téléphone valide",
+        "error": "Erreur",
+        "errorMessage": "Une erreur est survenue lors de l'envoi du code."
+      },
+      "success": {
+        "title": "Code envoyé!",
+        "message": "Un code de vérification a été envoyé par SMS à votre numéro de téléphone. Veuillez vérifier vos messages."
+      }
+    },
+    "verifyCode": {
+      "title": "Code de vérification",
+      "subtitle": "Nous avons envoyé un code de vérification à",
+      "codePlaceholder": "Entrez le code",
+      "resendButton": "Renvoyer",
+      "resendText": "Vous n'avez pas reçu le code ?",
+      "backText": "Modifier l'email/téléphone",
+      "verifyButton": "Vérifier le code",
+      "verifying": "Vérification...",
+      "errors": {
+        "invalidCode": "Code incomplet",
+        "invalidCodeMessage": "Veuillez saisir le code de 4 chiffres",
+        "error": "Erreur",
+        "errorMessage": "Une erreur est survenue lors de la vérification."
+      },
+      "success": {
+        "title": "Code vérifié!",
+        "message": "Votre code de vérification est correct."
+      }
+    },
+    "resetPassword": {
+      "title": "Nouveau mot de passe",
+      "subtitle": "Votre mot de passe doit être sécurisé et unique",
+      "passwordPlaceholder": "Nouveau mot de passe",
+      "confirmPasswordPlaceholder": "Confirmer le nouveau mot de passe",
+      "resetButton": "Réinitialiser le mot de passe",
+      "resetting": "Réinitialisation...",
+      "errors": {
+        "missingFields": "Champs manquants",
+        "missingFieldsMessage": "Veuillez remplir tous les champs",
+        "passwordMismatch": "Mots de passe différents",
+        "passwordMismatchMessage": "Les mots de passe ne correspondent pas",
+        "weakPassword": "Mot de passe faible",
+        "weakPasswordMessage": "Le mot de passe doit contenir au moins 6 caractères",
+        "weakPasswordDetails": "Le mot de passe doit contenir au moins une majuscule, une minuscule et un chiffre",
+        "error": "Erreur",
+        "errorMessage": "Une erreur est survenue lors de la réinitialisation de votre mot de passe."
+      },
+      "success": {
+        "title": "Mot de passe réinitialisé!",
+        "message": "Votre mot de passe a été mis à jour avec succès."
+      }
+    }
+  },
+  "dashboard": {
+    "patient": {
+      "title": "Mes médicaments",
+      "greeting": "Bonjour",
+      "today": "Aujourd'hui",
+      "tomorrow": "Demain",
+      "yesterday": "Hier",
+      "noMedications": "Aucun médicament",
+      "noMedicationsMessage": "Vous n'avez aucun médicament prévu pour cette date",
+      "stats": {
+        "totalToday": "Total aujourd'hui",
+        "taken": "Pris",
+        "adherence": "Taux d'adhérence"
+      },
+      "status": {
+        "pending": "En attente",
+        "taken": "Pris",
+        "missed": "Manqué",
+        "scheduled": "Programmé"
+      },
+      "actions": {
+        "markTaken": "Marquer comme pris",
+        "viewDetails": "Voir les détails"
+      },
+      "errors": {
+        "sessionExpired": "Session expirée. Veuillez vous reconnecter.",
+        "userDataNotFound": "Données utilisateur introuvables. Veuillez vous reconnecter.",
+        "loadError": "Impossible de charger les médicaments",
+        "accessDenied": "Accès refusé: Cette fonctionnalité est réservée aux patients.",
+        "syncError": "Erreur de synchronisation",
+        "syncErrorMessage": "Une erreur est survenue lors de la synchronisation",
+        "syncRemindersError": "Impossible de synchroniser les rappels",
+        "markError": "Impossible de marquer le médicament"
+      },
+      "sync": {
+        "syncing": "Synchronisation...",
+        "synced": "Synchronisé",
+        "lastSync": "Dernière synchronisation",
+        "pendingSync": "Synchronisation en attente",
+        "noPending": "Aucune synchronisation en attente",
+        "success": {
+          "title": "Synchronisation réussie",
+          "message": "{{count}} rappels synchronisés",
+          "audioDownloaded": "{{count}} messages vocaux téléchargés"
+        }
+      }
+    },
+    "doctor": {
+      "title": "Mes patients",
+      "greeting": "Bonjour",
+      "dashboardTitle": "Tableau de bord",
+      "doctor": "Docteur",
+      "tutor": "Tuteur",
+      "searchPlaceholder": "Rechercher un patient...",
+      "addPatient": "Ajouter un patient",
+      "noPatients": "Aucun patient trouvé",
+      "noPatientsMessage": "Commencez par ajouter vos premiers patients",
+      "noPatientsSearch": "Aucun patient ne correspond à votre recherche",
+      "stats": {
+        "totalPatients": "Patients",
+        "alerts": "Alertes",
+        "recentActivity": "Activité récente"
+      },
+      "patientCard": {
+        "medications": "Médicaments",
+        "adherence": "Adhérence",
+        "lastActivity": "Dernière activité",
+        "viewProfile": "Profil",
+        "delete": "Supprimer"
+      },
+      "errors": {
+        "loadError": "Impossible de charger les patients",
+        "deleteError": "Impossible de supprimer le patient"
+      }
+    }
+  },
+  "profile": {
+    "headerTitle": "Profil",
+    "editProfile": "Modifier le profil",
+    "personalInfoSection": "Informations personnelles",
+    "preferencesSection": "Préférences",
+    "securitySection": "Sécurité",
+    "legalSection": "Légal",
+    "notifications": {
+      "title": "Notifications",
+      "subtitle": "Recevoir les alertes"
+    },
+    "changePassword": {
+      "title": "Changer le mot de passe",
+      "subtitle": "Modifier votre mot de passe"
+    },
+    "twoFactor": {
+      "title": "Authentification à deux facteurs",
+      "disabled": "Désactivée"
+    },
+    "terms": {
+      "title": "Conditions d'utilisation",
+      "subtitle": "Consulter les CGU"
+    },
+    "privacy": {
+      "title": "Politique de confidentialité",
+      "subtitle": "Protection de vos données"
+    },
+    "about": {
+      "title": "À propos de MediCare",
+      "version": "Version 1.0.0"
+    },
+    "logout": {
+      "title": "Déconnexion",
+      "message": "Êtes-vous sûr de vouloir vous déconnecter ?",
+      "button": "Se déconnecter"
+    },
+    "title": "Profil",
+    "edit": "Modifier le profil",
+    "settings": "Paramètres",
+    "preferences": "Préférences",
+    "notificationsDescription": "Recevoir les alertes de médicaments",
+    "language": "Langue",
+    "timezone": "Fuseau horaire",
+    "security": "Sécurité",
+    "changePasswordOld": "Changer le mot de passe",
+    "logoutOld": "Déconnexion",
+    "logoutConfirm": "Êtes-vous sûr de vouloir vous déconnecter ?",
+    "personalInfo": "Informations personnelles",
+    "firstName": "Prénom",
+    "lastName": "Nom",
+    "email": "Email",
+    "phone": "Téléphone",
+    "dateOfBirth": "Date de naissance",
+    "role": "Rôle",
+    "save": "Enregistrer les modifications",
+    "saving": "Enregistrement...",
+    "errors": {
+      "loadError": "Impossible de charger le profil",
+      "saveError": "Impossible d'enregistrer le profil",
+      "updateError": "Impossible de mettre à jour le profil"
+    },
+    "success": {
+      "saved": "Profil enregistré avec succès",
+      "updated": "Profil mis à jour avec succès"
+    },
+    "adherenceHistory": "Historique d'observance",
+    "viewStats": "Consulter mes statistiques",
+    "legal": "Légal"
+  },
+  "addPatient": {
+    "title": "Ajouter un Patient",
+    "patientInfo": "Informations du Patient",
+    "firstNamePlaceholder": "Prénom du patient",
+    "lastNamePlaceholder": "Nom du patient",
+    "phonePlaceholder": "Numéro de téléphone du patient",
+    "sendInvitation": "Envoyer l'Invitation",
+    "sending": "Envoi en cours...",
+    "success": {
+      "title": "Invitation envoyée",
+      "message": "Invitation envoyée avec succès au {{phone}}."
+    },
+    "errors": {
+      "firstNameRequired": "Le prénom est requis",
+      "lastNameRequired": "Le nom est requis",
+      "sendFailed": "Échec de l'envoi de l'invitation"
+    },
+    "infoMessage": "Le patient recevra un SMS avec le lien de téléchargement de l'application et ses identifiants de connexion."
+  },
+  "patientProfile": {
+    "title": "Profil Patient",
+    "medications": {
+      "activeCount": "{{count}} médicament(s) actif(s)",
+      "empty": "Aucun médicament",
+      "emptySubtitle": "Ce patient n'a pas encore de prescription active",
+      "activePrescriptions": "Prescriptions Actives"
+    },
+    "tabs": {
+      "medications": "Méds",
+      "adherence": "Stats",
+      "voices": "Voix"
+    },
+    "prescription": {
+      "created": "Prescription créée avec succès",
+      "updated": "Prescription mise à jour avec succès",
+      "deleted": "Prescription supprimée avec succès",
+      "deleteTitle": "Supprimer la prescription",
+      "deleteMessage": "Êtes-vous sûr de vouloir supprimer cette prescription ?",
+      "deleteError": "Erreur lors de la suppression",
+      "saveError": "Erreur lors de la sauvegarde"
+    },
+    "voiceMessage": {
+      "deleteTitle": "Supprimer le message",
+      "deleteMessage": "Êtes-vous sûr de vouloir supprimer ce message vocal ?",
+      "deleted": "Message vocal supprimé avec succès",
+      "deleteError": "Erreur lors de la suppression"
+    }
+  },
+  "medications": {
+    "title": "Médicaments",
+    "add": "Ajouter un médicament",
+    "edit": "Modifier le médicament",
+    "delete": "Supprimer le médicament",
+    "name": "Nom du médicament",
+    "dosage": "Dosage",
+    "instructions": "Instructions",
+    "schedule": "Programme",
+    "times": "Heures",
+    "frequency": "Fréquence",
+    "startDate": "Date de début",
+    "endDate": "Date de fin",
+    "noMedications": "Aucun médicament",
+    "errors": {
+      "addError": "Impossible d'ajouter le médicament",
+      "updateError": "Impossible de mettre à jour le médicament",
+      "deleteError": "Impossible de supprimer le médicament"
+    }
+  },
+  "alarm": {
+    "title": "Rappel de médicament",
+    "medication": "Médicament",
+    "dosage": "Dosage",
+    "instructions": "Instructions",
+    "defaultInstructions": "Prenez votre médicament selon les instructions de votre médecin",
+    "confirm": "J'ai pris",
+    "snooze": "Reporter",
+    "confirming": "Confirmation...",
+    "snoozing": "Report...",
+    "doctorMessage": "Message du médecin en cours...",
+    "errors": {
+      "confirmError": "Impossible de confirmer le médicament",
+      "snoozeError": "Impossible de reporter le rappel"
+    }
+  },
+  "components": {
+    "modal": {
+      "ok": "OK"
+    },
+    "phoneInput": {
+      "placeholder": "Numéro de téléphone",
+      "error": "Veuillez saisir un numéro de téléphone valide"
+    },
+    "datePicker": {
+      "selectDate": "Sélectionner une date"
+    },
+    "rolePicker": {
+      "patient": "Patient",
+      "doctor": "Médecin",
+      "caregiver": "Tuteur"
+    },
+    "roleDescriptions": {
+      "patient": "Gérer mes médicaments et recevoir des rappels",
+      "caregiver": "Suivre les traitements de mes proches",
+      "doctor": "Prescrire et suivre mes patients"
+    },
+    "deleteConfirmation": {
+      "title": "Supprimer le Patient",
+      "message": "Êtes-vous sûr de vouloir supprimer",
+      "warning": "Cette action est irréversible et supprimera toutes les données associées à ce patient.",
+      "confirm": "Supprimer",
+      "cancel": "Annuler"
+    }
+  },
+  "terms": {
+    "title": "Conditions d'utilisation",
+    "lastUpdated": "Dernière mise à jour: Octobre 2024",
+    "sections": {
+      "acceptance": {
+        "title": "1. Acceptation des conditions",
+        "content": "En accédant et en utilisant l'application MediCare, vous acceptez d'être lié par ces conditions d'utilisation. Si vous n'acceptez pas ces conditions, veuillez ne pas utiliser l'application."
+      },
+      "description": {
+        "title": "2. Description du service",
+        "content": "MediCare est une application de gestion des médicaments et de suivi médical destinée aux patients, tuteurs et médecins. L'application permet de:",
+        "points": {
+          "manage": "Gérer les prescriptions médicales",
+          "reminders": "Recevoir des rappels pour les prises de médicaments",
+          "tracking": "Suivre l'observance thérapeutique",
+          "communication": "Communiquer avec les professionnels de santé"
+        }
+      },
+      "responsibilities": {
+        "title": "3. Responsabilités de l'utilisateur",
+        "content": "Vous êtes responsable de:",
+        "points": {
+          "credentials": "Maintenir la confidentialité de vos identifiants de connexion",
+          "information": "Fournir des informations exactes et à jour",
+          "lawful": "Utiliser l'application conformément à la loi",
+          "verification": "Ne pas partager vos codes de vérification"
+        }
+      },
+      "dataProtection": {
+        "title": "4. Protection des données médicales",
+        "content": "Vos données médicales sont protégées conformément aux réglementations en vigueur sur la protection des données de santé. Nous nous engageons à:",
+        "points": {
+          "encryption": "Chiffrer toutes les données sensibles",
+          "sharing": "Ne jamais partager vos données sans votre consentement",
+          "secrecy": "Respecter le secret médical",
+          "security": "Sécuriser l'accès à vos informations"
+        }
+      },
+      "liability": {
+        "title": "5. Limitation de responsabilité",
+        "content": "MediCare est un outil d'aide à la gestion médicale. Il ne remplace pas:",
+        "points": {
+          "consultations": "Les consultations médicales",
+          "diagnostics": "Les diagnostics professionnels",
+          "advice": "Les conseils médicaux personnalisés"
+        },
+        "emergency": "En cas d'urgence médicale, contactez immédiatement les services d'urgence."
+      },
+      "modifications": {
+        "title": "6. Modifications des conditions",
+        "content": "Nous nous réservons le droit de modifier ces conditions à tout moment. Les utilisateurs seront informés des modifications importantes par notification."
+      },
+      "contact": {
+        "title": "7. Contact",
+        "content": "Pour toute question concernant ces conditions, contactez-nous:",
+        "email": "Email: support@medicare.tn",
+        "phone": "Téléphone: +216 XX XXX XXX"
+      }
+    }
+  },
+  "privacy": {
+    "title": "Politique de confidentialité",
+    "lastUpdated": "Dernière mise à jour: Octobre 2024",
+    "sections": {
+      "introduction": {
+        "title": "Introduction",
+        "content": "MediCare s'engage à protéger votre vie privée et la confidentialité de vos données personnelles et médicales. Cette politique explique comment nous collectons, utilisons et protégeons vos informations."
+      },
+      "dataCollected": {
+        "title": "1. Données collectées",
+        "content": "Nous collectons les informations suivantes:",
+        "points": {
+          "identification": "Informations d'identification (nom, prénom, email, téléphone)",
+          "medical": "Données médicales (prescriptions, médicaments, rappels)",
+          "connection": "Données de connexion (adresse IP, type d'appareil)",
+          "messages": "Messages vocaux et communications"
+        }
+      },
+      "dataUsage": {
+        "title": "2. Utilisation des données",
+        "content": "Vos données sont utilisées pour:",
+        "points": {
+          "services": "Fournir les services de l'application",
+          "reminders": "Envoyer des rappels de médicaments",
+          "communication": "Faciliter la communication avec les professionnels de santé",
+          "improvement": "Améliorer nos services"
+        }
+      },
+      "dataProtection": {
+        "title": "3. Protection des données",
+        "content": "Nous mettons en œuvre des mesures de sécurité strictes:",
+        "points": {
+          "encryption": "Chiffrement des données en transit et au repos",
+          "authentication": "Accès sécurisé par authentification",
+          "servers": "Serveurs sécurisés et sauvegardés régulièrement",
+          "audits": "Audits de sécurité réguliers"
+        }
+      },
+      "dataSharing": {
+        "title": "4. Partage des données",
+        "content": "Vos données ne sont partagées qu'avec:",
+        "points": {
+          "professionals": "Les professionnels de santé autorisés (médecins, tuteurs)",
+          "technical": "Les services techniques nécessaires au fonctionnement"
+        },
+        "noSale": "Nous ne vendons jamais vos données personnelles à des tiers."
+      },
+      "rights": {
+        "title": "5. Vos droits",
+        "content": "Conformément à la réglementation, vous disposez des droits suivants:",
+        "points": {
+          "access": "Droit d'accès à vos données",
+          "rectification": "Droit de rectification",
+          "erasure": "Droit à l'effacement",
+          "portability": "Droit à la portabilité des données",
+          "opposition": "Droit d'opposition au traitement"
+        }
+      },
+      "retention": {
+        "title": "6. Conservation des données",
+        "content": "Vos données sont conservées:",
+        "points": {
+          "duration": "Pendant toute la durée d'utilisation du service",
+          "medical": "3 ans après la dernière connexion (données médicales)",
+          "legal": "Selon les obligations légales applicables"
+        }
+      },
+      "cookies": {
+        "title": "7. Cookies et technologies similaires",
+        "content": "Nous utilisons des technologies pour améliorer votre expérience:",
+        "points": {
+          "tokens": "Tokens de session pour la connexion sécurisée",
+          "storage": "Stockage local pour les préférences",
+          "notifications": "Notifications push (avec votre consentement)"
+        }
+      },
+      "modifications": {
+        "title": "8. Modifications de la politique",
+        "content": "Nous pouvons modifier cette politique de confidentialité. Les modifications importantes vous seront notifiées par email ou notification dans l'application."
+      },
+      "contact": {
+        "title": "9. Contact",
+        "content": "Pour toute question sur la confidentialité ou pour exercer vos droits:",
+        "email": "Email: privacy@medicare.tn",
+        "phone": "Téléphone: +216 XX XXX XXX",
+        "address": "Adresse: Tunis, Tunisie"
+      },
+      "certification": {
+        "text": "Conforme aux normes de protection des données de santé"
+      }
+    }
+  }
+}
+

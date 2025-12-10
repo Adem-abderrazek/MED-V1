@@ -21,6 +21,7 @@ import VoiceRecorderModal from '../components/VoiceRecorderModal';
 import { useAudioPlayer, setAudioModeAsync } from 'expo-audio';
 import * as FileSystem from 'expo-file-system/legacy';
 import { formatTime, formatDate, formatDateTime } from '../utils/timeFormatting';
+import { useLanguage } from '../contexts/LanguageContext';
 
 const { width } = Dimensions.get('window');
 
@@ -65,6 +66,7 @@ interface Medication {
 
 export default function PatientProfileScreen() {
   const router = useRouter();
+  const { t, currentLanguage, isRTL } = useLanguage();
   const { patientId } = useLocalSearchParams<{ patientId: string }>();
   const [patient, setPatient] = useState<Patient | null>(null);
   const [medications, setMedications] = useState<Medication[]>([]);
@@ -335,8 +337,8 @@ export default function PatientProfileScreen() {
         setFeedbackModal({
           visible: true,
           type: 'success',
-          title: 'Succès',
-          message: 'Prescription supprimée avec succès',
+          title: t('common.success.deleted'),
+          message: t('patientProfile.prescription.deleted'),
           onConfirm: () => {
             setFeedbackModal(prev => ({ ...prev, visible: false }));
             loadPatientData();
@@ -346,8 +348,8 @@ export default function PatientProfileScreen() {
         setFeedbackModal({
           visible: true,
           type: 'error',
-          title: 'Erreur',
-          message: result.message || 'Erreur lors de la suppression',
+          title: t('common.errors.genericError'),
+          message: result.message || t('patientProfile.prescription.deleteError'),
           onConfirm: () => setFeedbackModal(prev => ({ ...prev, visible: false })),
         });
       }
@@ -356,8 +358,8 @@ export default function PatientProfileScreen() {
       setFeedbackModal({
         visible: true,
         type: 'error',
-        title: 'Erreur',
-        message: error.message || 'Erreur lors de la suppression',
+        title: t('common.errors.genericError'),
+        message: error.message || t('patientProfile.prescription.deleteError'),
         onConfirm: () => setFeedbackModal(prev => ({ ...prev, visible: false })),
       });
     }
@@ -393,19 +395,19 @@ export default function PatientProfileScreen() {
         setFeedbackModal({
           visible: true,
           type: 'success',
-          title: 'Succès',
+          title: t('common.success.updated'),
           message: selectedPrescription 
-            ? 'Prescription mise à jour avec succès' 
-            : 'Prescription créée avec succès',
+            ? t('patientProfile.prescription.updated')
+            : t('patientProfile.prescription.created'),
           onConfirm: () => {
             setFeedbackModal(prev => ({ ...prev, visible: false }));
           },
         });
       } else {
-        throw new Error(result.message || 'Erreur lors de la sauvegarde');
+        throw new Error(result.message || t('patientProfile.prescription.saveError'));
       }
     } catch (error: any) {
-      throw new Error(error.message || 'Erreur lors de la sauvegarde de la prescription');
+      throw new Error(error.message || t('patientProfile.prescription.saveError'));
     }
   };
 
@@ -498,8 +500,8 @@ export default function PatientProfileScreen() {
     setFeedbackModal({
       visible: true,
       type: 'confirm',
-      title: 'Supprimer le message',
-      message: 'Êtes-vous sûr de vouloir supprimer ce message vocal ?',
+      title: t('patientProfile.voiceMessage.deleteTitle'),
+      message: t('patientProfile.voiceMessage.deleteMessage'),
       onConfirm: async () => {
         try {
           if (!token) return;
@@ -510,8 +512,8 @@ export default function PatientProfileScreen() {
             setFeedbackModal({
               visible: true,
               type: 'success',
-              title: 'Succès',
-              message: 'Message vocal supprimé avec succès',
+              title: t('common.success.deleted'),
+              message: t('patientProfile.voiceMessage.deleted'),
               onConfirm: () => {
                 setFeedbackModal(prev => ({ ...prev, visible: false }));
                 loadPatientData();
@@ -522,15 +524,15 @@ export default function PatientProfileScreen() {
           setFeedbackModal({
             visible: true,
             type: 'error',
-            title: 'Erreur',
-            message: error.message || 'Erreur lors de la suppression',
+            title: t('common.errors.genericError'),
+            message: error.message || t('patientProfile.voiceMessage.deleteError'),
             onConfirm: () => setFeedbackModal(prev => ({ ...prev, visible: false })),
           });
         }
       },
       onCancel: () => setFeedbackModal(prev => ({ ...prev, visible: false })),
-      confirmText: 'Supprimer',
-      cancelText: 'Annuler',
+      confirmText: t('common.buttons.delete'),
+      cancelText: t('common.buttons.cancel'),
     });
   };
 
@@ -681,7 +683,7 @@ export default function PatientProfileScreen() {
             onPress={() => handleEditPrescription(item)}
           >
             <Ionicons name="create-outline" size={20} color="#4facfe" />
-            <Text style={styles.actionButtonText}>Modifier</Text>
+            <Text style={styles.actionButtonText}>{t('common.buttons.edit')}</Text>
           </TouchableOpacity>
           
           <TouchableOpacity
@@ -689,7 +691,7 @@ export default function PatientProfileScreen() {
             onPress={() => handleDeletePrescription(item)}
           >
             <Ionicons name="trash-outline" size={20} color="#EF4444" />
-            <Text style={[styles.actionButtonText, styles.deleteButtonText]}>Supprimer</Text>
+            <Text style={[styles.actionButtonText, styles.deleteButtonText]}>{t('common.buttons.delete')}</Text>
           </TouchableOpacity>
         </View>
       </LinearGradient>
@@ -699,9 +701,9 @@ export default function PatientProfileScreen() {
   const renderEmptyMedications = useCallback(() => (
     <View style={styles.emptyContainer}>
       <Ionicons name="medical-outline" size={64} color="rgba(255, 255, 255, 0.3)" />
-      <Text style={styles.emptyTitle}>Aucun médicament</Text>
+      <Text style={styles.emptyTitle}>{t('patientProfile.medications.empty')}</Text>
       <Text style={styles.emptySubtitle}>
-        Ce patient n'a pas encore de prescription active
+        {t('patientProfile.medications.emptySubtitle')}
       </Text>
     </View>
   ), []);
@@ -714,7 +716,7 @@ export default function PatientProfileScreen() {
           style={styles.background}
         >
           <View style={styles.loadingContainer}>
-            <Text style={styles.loadingText}>Chargement...</Text>
+            <Text style={styles.loadingText}>{t('common.loading')}</Text>
           </View>
         </LinearGradient>
       </View>
@@ -722,7 +724,10 @@ export default function PatientProfileScreen() {
   }
 
   return (
-    <View style={styles.container}>
+    <View 
+      style={styles.container}
+      key={`patient-profile-${currentLanguage}-${isRTL}`}
+    >
       <LinearGradient
         colors={["#1a1a2e", "#16213e", "#0f3460"]}
         style={styles.background}
@@ -746,7 +751,7 @@ export default function PatientProfileScreen() {
           >
             <Ionicons name="arrow-back" size={24} color="white" />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Profil Patient</Text>
+          <Text style={styles.headerTitle}>{t('patientProfile.title')}</Text>
           <View style={styles.headerSpacer} />
         </LinearGradient>
 
@@ -834,7 +839,7 @@ export default function PatientProfileScreen() {
                 color={selectedTab === 'medications' ? '#4facfe' : 'rgba(255, 255, 255, 0.6)'} 
               />
               <Text style={[styles.tabText, selectedTab === 'medications' && styles.tabTextActive]} numberOfLines={1}>
-                Méds
+                {t('patientProfile.tabs.medications')}
               </Text>
             </TouchableOpacity>
             
@@ -848,7 +853,7 @@ export default function PatientProfileScreen() {
                 color={selectedTab === 'adherence' ? '#4facfe' : 'rgba(255, 255, 255, 0.6)'} 
               />
               <Text style={[styles.tabText, selectedTab === 'adherence' && styles.tabTextActive]} numberOfLines={1}>
-                Stats
+                {t('patientProfile.tabs.adherence')}
               </Text>
             </TouchableOpacity>
             
@@ -862,7 +867,7 @@ export default function PatientProfileScreen() {
                 color={selectedTab === 'voices' ? '#4facfe' : 'rgba(255, 255, 255, 0.6)'} 
               />
               <Text style={[styles.tabText, selectedTab === 'voices' && styles.tabTextActive]} numberOfLines={1}>
-                Voix
+                {t('patientProfile.tabs.voices')}
               </Text>
             </TouchableOpacity>
           </View>
@@ -871,7 +876,7 @@ export default function PatientProfileScreen() {
           {selectedTab === 'medications' && (
             <>
               <View style={styles.sectionHeader}>
-                <Text style={styles.sectionTitle}>Prescriptions Actives</Text>
+                <Text style={styles.sectionTitle}>{t('patientProfile.medications.activePrescriptions')}</Text>
                 <TouchableOpacity
                   style={styles.addButton}
                   onPress={handleAddPrescription}
@@ -1203,12 +1208,12 @@ export default function PatientProfileScreen() {
         <FeedbackModal
           visible={deleteConfirmModal.visible}
           type="confirm"
-          title="Supprimer la prescription"
-          message={`Êtes-vous sûr de vouloir supprimer cette prescription ?`}
+          title={t('patientProfile.prescription.deleteTitle')}
+          message={t('patientProfile.prescription.deleteMessage')}
           onConfirm={confirmDeletePrescription}
           onCancel={() => setDeleteConfirmModal({ visible: false, medication: null })}
-          confirmText="Supprimer"
-          cancelText="Annuler"
+          confirmText={t('common.buttons.delete')}
+          cancelText={t('common.buttons.cancel')}
         />
 
         {/* Success/Error Feedback Modal */}

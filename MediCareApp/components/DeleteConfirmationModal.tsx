@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
+import { useLanguage } from '../contexts/LanguageContext';
 
 const { width } = Dimensions.get('window');
 
@@ -37,6 +38,7 @@ export default function DeleteConfirmationModal({
   onConfirm,
   isDeleting = false,
 }: DeleteConfirmationModalProps) {
+  const { t } = useLanguage();
   if (!patient) return null;
 
   const handleConfirm = () => {
@@ -61,20 +63,20 @@ export default function DeleteConfirmationModal({
               <View style={[styles.iconContainer, { backgroundColor: 'rgba(255, 107, 107, 0.2)' }]}>
                 <Ionicons name="warning" size={32} color="#FF6B6B" />
               </View>
-              <Text style={styles.title}>Supprimer le Patient</Text>
+              <Text style={styles.title}>{t('components.deleteConfirmation.title')}</Text>
             </View>
 
             {/* Message */}
             <View style={styles.messageContainer}>
               <Text style={styles.message}>
-                Êtes-vous sûr de vouloir supprimer{' '}
+                {t('components.deleteConfirmation.message')}{' '}
                 <Text style={styles.patientNameHighlight}>
                   {patient.firstName} {patient.lastName}
                 </Text>
-                {' '}de votre liste de patients ?
+                {' '}?
               </Text>
               <Text style={styles.warningText}>
-                Cette action est irréversible et supprimera toutes les données associées à ce patient.
+                {t('components.deleteConfirmation.warning')}
               </Text>
             </View>
 
@@ -90,7 +92,7 @@ export default function DeleteConfirmationModal({
               </View>
               <View style={styles.patientInfoRow}>
                 <Ionicons name="medical" size={16} color="rgba(255, 255, 255, 0.6)" />
-                <Text style={styles.patientInfoText}>{patient.medicationCount} médicament(s)</Text>
+                <Text style={styles.patientInfoText}>{patient.medicationCount} {t('medications.title')}</Text>
               </View>
             </View>
 
@@ -101,7 +103,7 @@ export default function DeleteConfirmationModal({
                 onPress={onClose}
                 disabled={isDeleting}
               >
-                <Text style={styles.cancelButtonText}>Annuler</Text>
+                <Text style={styles.cancelButtonText}>{t('components.deleteConfirmation.cancel')}</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
@@ -114,11 +116,11 @@ export default function DeleteConfirmationModal({
                   style={styles.deleteButtonGradient}
                 >
                   {isDeleting ? (
-                    <Text style={styles.deleteButtonText}>Suppression...</Text>
+                    <Text style={styles.deleteButtonText}>{t('common.buttons.loading')}</Text>
                   ) : (
                     <>
                       <Ionicons name="trash" size={16} color="white" />
-                      <Text style={styles.deleteButtonText}>Supprimer</Text>
+                      <Text style={styles.deleteButtonText}>{t('components.deleteConfirmation.confirm')}</Text>
                     </>
                   )}
                 </LinearGradient>

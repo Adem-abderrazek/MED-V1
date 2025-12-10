@@ -9,33 +9,34 @@ import {
   Dimensions
 } from "react-native";
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useLanguage } from '../contexts/LanguageContext';
 
 const { width, height } = Dimensions.get('window');
 
 interface Role {
   id: string;
-  name: string;
-  description: string;
+  nameKey: string;
+  descriptionKey: string;
   icon: keyof typeof Ionicons.glyphMap;
 }
 
 const roles: Role[] = [
   {
     id: 'patient',
-    name: 'Patient',
-    description: 'Gérer mes médicaments et recevoir des rappels',
+    nameKey: 'components.rolePicker.patient',
+    descriptionKey: 'roleDescriptions.patient',
     icon: 'person'
   },
   {
     id: 'tuteur',
-    name: 'Tuteur',
-    description: 'Suivre les traitements de mes proches',
+    nameKey: 'components.rolePicker.caregiver',
+    descriptionKey: 'roleDescriptions.caregiver',
     icon: 'heart'
   },
   {
     id: 'medecin',
-    name: 'Médecin',
-    description: 'Prescrire et suivre mes patients',
+    nameKey: 'components.rolePicker.doctor',
+    descriptionKey: 'roleDescriptions.doctor',
     icon: 'medical'
   }
 ];
@@ -46,6 +47,7 @@ interface RolePickerProps {
 }
 
 export default function RolePicker({ selectedRole, onRoleSelect }: RolePickerProps) {
+  const { t } = useLanguage();
   const [modalVisible, setModalVisible] = useState(false);
 
   const getRoleIcon = (roleId: string): keyof typeof Ionicons.glyphMap => {
@@ -81,10 +83,10 @@ export default function RolePicker({ selectedRole, onRoleSelect }: RolePickerPro
           </View>
           <View style={styles.textContainer}>
             <Text style={styles.pickerText}>
-              {getSelectedRole().name}
+              {getRoleName(getSelectedRole())}
             </Text>
             <Text style={styles.pickerDescription}>
-              {getSelectedRole().description}
+              {getRoleDescription(getSelectedRole())}
             </Text>
           </View>
           <Ionicons 
@@ -104,7 +106,7 @@ export default function RolePicker({ selectedRole, onRoleSelect }: RolePickerPro
         <View style={styles.modalOverlay}>
           <SafeAreaView style={styles.modalContainer}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Choisir votre rôle</Text>
+              <Text style={styles.modalTitle}>{t('common.labels.role')}</Text>
               <TouchableOpacity
                 style={styles.closeButton}
                 onPress={() => setModalVisible(false)}

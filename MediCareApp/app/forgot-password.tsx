@@ -16,9 +16,11 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import VerificationModal from "../components/VerificationModal";
 import InternationalPhoneInput, { PhoneInputValue } from "../components/InternationalPhoneInput";
 import { requestPasswordReset } from '../services/api/common';
+import { useLanguage } from '../contexts/LanguageContext';
 
 export default function ForgotPasswordScreen() {
   const router = useRouter();
+  const { t, isRTL } = useLanguage();
   const [loginMethod, setLoginMethod] = useState<'email' | 'phone'>('phone');
   const [email, setEmail] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
@@ -53,17 +55,17 @@ export default function ForgotPasswordScreen() {
     // Validate based on login method
     if (loginMethod === 'email') {
       if (!email.trim()) {
-        showModal("error", "Champ manquant", "Veuillez saisir votre email");
+        showModal("error", t("auth.forgotPassword.errors.missingField"), t("auth.forgotPassword.errors.missingEmail"));
         return;
       }
       if (!validateEmail(email)) {
-        showModal("error", "Email invalide", "Veuillez saisir une adresse email valide");
+        showModal("error", t("auth.forgotPassword.errors.invalidEmail"), t("auth.forgotPassword.errors.invalidEmailMessage"));
         return;
       }
     } else {
       if (!phoneValidation || !phoneValidation.isValid) {
-        setPhoneError("Veuillez saisir un numéro de téléphone valide");
-        showModal("error", "Numéro invalide", "Veuillez saisir un numéro de téléphone valide");
+        setPhoneError(t("components.phoneInput.error"));
+        showModal("error", t("auth.forgotPassword.errors.invalidPhone"), t("auth.forgotPassword.errors.invalidPhoneMessage"));
         return;
       }
     }
@@ -82,7 +84,7 @@ export default function ForgotPasswordScreen() {
       setIsLoading(false);
       
       if (result.success) {
-        showModal("success", "Code envoyé!", "Un code de vérification a été envoyé par SMS à votre numéro de téléphone. Veuillez vérifier vos messages.");
+        showModal("success", t("auth.forgotPassword.success.title"), t("auth.forgotPassword.success.message"));
         // Navigate to verification screen after successful modal
         setTimeout(() => {
           setModalVisible(false);
@@ -92,20 +94,20 @@ export default function ForgotPasswordScreen() {
           });
         }, 2000);
       } else {
-        showModal("error", "Erreur", result.message || "Une erreur est survenue lors de l'envoi du code.");
+        showModal("error", t("auth.forgotPassword.errors.error"), result.message || t("auth.forgotPassword.errors.errorMessage"));
       }
     } catch (error: any) {
       setIsLoading(false);
       console.error('Forgot password error:', error);
       
-      let errorMessage = "Une erreur est survenue lors de l'envoi du code.";
+      let errorMessage = t("auth.forgotPassword.errors.errorMessage");
       if (error.response?.data?.message) {
         errorMessage = error.response.data.message;
       } else if (error.message) {
         errorMessage = error.message;
       }
       
-      showModal("error", "Erreur", errorMessage);
+      showModal("error", t("auth.forgotPassword.errors.error"), errorMessage);
     }
   };
 
@@ -135,7 +137,7 @@ export default function ForgotPasswordScreen() {
               >
                 <Ionicons name="arrow-back" size={24} color="white" />
               </TouchableOpacity>
-              <Text style={styles.headerTitle}>Mot de passe oublié</Text>
+              <Text style={styles.headerTitle}>{t("auth.forgotPassword.headerTitle")}</Text>
             </View>
 
             {/* Form */}
@@ -149,9 +151,9 @@ export default function ForgotPasswordScreen() {
                 </LinearGradient>
               </View>
 
-              <Text style={styles.title}>Réinitialiser votre mot de passe</Text>
+              <Text style={styles.title}>{t("auth.forgotPassword.title")}</Text>
               <Text style={styles.subtitle}>
-                Saisissez votre email ou numéro de téléphone pour recevoir un code de vérification
+                {t("auth.forgotPassword.subtitle")}
               </Text>
 
               {/* Login Method Selector */}
@@ -175,7 +177,7 @@ export default function ForgotPasswordScreen() {
                     styles.methodButtonText,
                     loginMethod === 'email' && styles.methodButtonTextActive
                   ]}>
-                    Email
+                    {t("common.labels.email")}
                   </Text>
                 </TouchableOpacity>
                 
@@ -198,7 +200,7 @@ export default function ForgotPasswordScreen() {
                     styles.methodButtonText,
                     loginMethod === 'phone' && styles.methodButtonTextActive
                   ]}>
-                    Téléphone
+                    {t("common.labels.phone")}
                   </Text>
                 </TouchableOpacity>
               </View>
@@ -211,7 +213,7 @@ export default function ForgotPasswordScreen() {
                   </View>
                   <TextInput
                     style={styles.input}
-                    placeholder="Adresse e-mail"
+                    placeholder={t("auth.forgotPassword.emailPlaceholder")}
                     placeholderTextColor="rgba(255, 255, 255, 0.6)"
                     value={email}
                     onChangeText={setEmail}
@@ -227,14 +229,14 @@ export default function ForgotPasswordScreen() {
                     onChange={handlePhoneChange}
                     onBlur={() => {
                       if (phoneValidation && !phoneValidation.isValid) {
-                        setPhoneError("Veuillez saisir un numéro de téléphone valide");
+                        setPhoneError(t("components.phoneInput.error"));
                       }
                     }}
                     defaultCountry="TN"
                     required={true}
                     error={phoneError || undefined}
                     theme="patient"
-                    placeholder="Numéro de téléphone"
+                    placeholder={t("auth.forgotPassword.phonePlaceholder")}
                     accessibilityLabel="Phone number"
                     testID="forgot-password-phone-input"
                   />
@@ -245,7 +247,7 @@ export default function ForgotPasswordScreen() {
               <View style={styles.infoContainer}>
                 <Ionicons name="information-circle-outline" size={16} color="rgba(255, 255, 255, 0.7)" />
                 <Text style={styles.infoText}>
-                  Le code de vérification sera envoyé par SMS à votre numéro de téléphone
+                  {t("auth.forgotPassword.infoText")}
                 </Text>
               </View>
 
@@ -262,7 +264,7 @@ export default function ForgotPasswordScreen() {
                   style={styles.sendButtonGradient}
                 >
                   <Text style={styles.sendButtonText}>
-                    {isLoading ? "Envoi en cours..." : "Envoyer le code"}
+                    {isLoading ? t("auth.forgotPassword.sending") : t("auth.forgotPassword.sendButton")}
                   </Text>
                   {!isLoading && <Ionicons name="arrow-forward" size={20} color="white" style={styles.buttonIcon} />}
                 </LinearGradient>
@@ -270,9 +272,9 @@ export default function ForgotPasswordScreen() {
 
               {/* Back to Login */}
               <View style={styles.loginContainer}>
-                <Text style={styles.loginText}>Vous vous souvenez de votre mot de passe ? </Text>
+                <Text style={styles.loginText}>{t("auth.forgotPassword.rememberPassword")}</Text>
                 <TouchableOpacity onPress={() => router.push("/login")}>
-                  <Text style={styles.loginLink}>Se connecter</Text>
+                  <Text style={styles.loginLink}>{t("auth.forgotPassword.signIn")}</Text>
                 </TouchableOpacity>
               </View>
             </View>

@@ -18,6 +18,7 @@ import VerificationModal from "../components/VerificationModal";
 import InternationalPhoneInput, { PhoneInputValue } from "../components/InternationalPhoneInput";
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { login } from '../services/api/common';
+import { useLanguage } from '../contexts/LanguageContext';
 
 // Theme colors for different user types
 const THEME_COLORS = {
@@ -48,6 +49,7 @@ const STORAGE_KEYS = {
 
 export default function LoginScreen() {
   const router = useRouter();
+  const { t, isRTL } = useLanguage();
   const [loginMethod, setLoginMethod] = useState<'email' | 'phone'>('email');
   const [email, setEmail] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
@@ -112,13 +114,13 @@ export default function LoginScreen() {
     // Validate based on login method
     if (loginMethod === 'email') {
       if (!email.trim() || !password) {
-        showModal("error", "Champs manquants", "Veuillez remplir tous les champs");
+        showModal("error", t("auth.login.errors.missingFields"), t("auth.login.errors.missingFieldsMessage"));
         return;
       }
     } else {
       if (!phoneValidation || !phoneValidation.isValid || !password) {
-        setPhoneError("Veuillez saisir un numéro de téléphone valide");
-        showModal("error", "Champs manquants", "Veuillez remplir tous les champs avec un numéro de téléphone valide");
+        setPhoneError(t("components.phoneInput.error"));
+        showModal("error", t("auth.login.errors.missingFields"), t("auth.login.errors.missingFieldsMessage"));
         return;
       }
     }
@@ -156,8 +158,8 @@ export default function LoginScreen() {
         
         showModal(
           "success", 
-          "Connexion réussie!", 
-          `Bienvenue ${result.user?.firstName}! Vous êtes maintenant connecté à votre compte MediCare+.`
+          t("auth.login.success.title"), 
+          t("auth.login.success.message", { firstName: result.user?.firstName })
         );
         
         setTimeout(() => {
@@ -174,26 +176,26 @@ export default function LoginScreen() {
             default:
               showModal(
                 "error",
-                "Type d'utilisateur non supporté",
-                "Cette version de l'application ne supporte pas encore votre type de compte."
+                t("auth.login.errors.unsupportedUserType"),
+                t("auth.login.errors.unsupportedUserTypeMessage")
               );
           }
         }, 2000);
       } else {
-        showModal("error", "Erreur de connexion", result.message || "Email ou mot de passe incorrect.");
+        showModal("error", t("auth.login.errors.loginError"), result.message || t("auth.login.errors.invalidCredentials"));
       }
     } catch (error: any) {
       setIsLoading(false);
       console.error('Login error:', error);
       
-      let errorMessage = "Une erreur est survenue lors de la connexion.";
+      let errorMessage = t("auth.login.errors.connectionError");
       if (error.response?.data?.message) {
         errorMessage = error.response.data.message;
       } else if (error.message) {
         errorMessage = error.message;
       }
       
-      showModal("error", "Erreur de connexion", errorMessage);
+      showModal("error", t("auth.login.errors.loginError"), errorMessage);
     }
   };
 
@@ -220,14 +222,14 @@ export default function LoginScreen() {
                 >
                   <Ionicons name="arrow-back" size={24} color="white" />
                 </TouchableOpacity>
-                <Text style={styles.headerTitle}>Connexion</Text>
+                <Text style={styles.headerTitle}>{t("auth.login.headerTitle")}</Text>
               </View>
 
               {/* Form */}
               <View style={styles.formContainer}>
-            <Text style={styles.title}>Bon retour !</Text>
+            <Text style={styles.title}>{t("auth.login.title")}</Text>
             <Text style={styles.subtitle}>
-              Connectez-vous à votre compte MediCare+
+              {t("auth.login.subtitle")}
             </Text>
 
             {/* Login Method Selector */}
@@ -251,7 +253,7 @@ export default function LoginScreen() {
                   styles.methodButtonText,
                   loginMethod === 'email' && styles.methodButtonTextActive
                 ]}>
-                  Email
+                  {t("common.labels.email")}
                 </Text>
               </TouchableOpacity>
               
@@ -274,7 +276,7 @@ export default function LoginScreen() {
                   styles.methodButtonText,
                   loginMethod === 'phone' && styles.methodButtonTextActive
                 ]}>
-                  Téléphone
+                  {t("common.labels.phone")}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -287,7 +289,7 @@ export default function LoginScreen() {
                 </View>
                 <TextInput
                   style={styles.input}
-                  placeholder="Adresse e-mail"
+                  placeholder={t("auth.login.emailPlaceholder")}
                   placeholderTextColor="rgba(255, 255, 255, 0.6)"
                   value={email}
                   onChangeText={setEmail}
@@ -303,14 +305,14 @@ export default function LoginScreen() {
                   onChange={handlePhoneChange}
                   onBlur={() => {
                     if (phoneValidation && !phoneValidation.isValid) {
-                      setPhoneError("Veuillez saisir un numéro de téléphone valide");
+                      setPhoneError(t("components.phoneInput.error"));
                     }
                   }}
                   defaultCountry="TN"
                   required={true}
                   error={phoneError || undefined}
                   theme="patient"
-                  placeholder="Numéro de téléphone"
+                  placeholder={t("auth.login.phonePlaceholder")}
                   accessibilityLabel="Phone number"
                   testID="login-phone-input"
                 />
@@ -324,7 +326,7 @@ export default function LoginScreen() {
               </View>
               <TextInput
                 style={styles.input}
-                placeholder="Mot de passe"
+                  placeholder={t("auth.login.passwordPlaceholder")}
                 placeholderTextColor="rgba(255, 255, 255, 0.6)"
                 value={password}
                 onChangeText={setPassword}
@@ -358,7 +360,7 @@ export default function LoginScreen() {
                     <Ionicons name="checkmark" size={16} color="white" />
                   )}
                 </View>
-                <Text style={styles.rememberMeText}>Se souvenir de moi</Text>
+                <Text style={styles.rememberMeText}>{t("auth.login.rememberMe")}</Text>
               </TouchableOpacity>
 
               {/* Forgot Password */}
@@ -367,7 +369,7 @@ export default function LoginScreen() {
                 onPress={() => router.push("/forgot-password")}
               >
                 <Text style={[styles.forgotPasswordText, { color: themeColors.primary }]}>
-                  Mot de passe oublié ?
+                  {t("auth.login.forgotPassword")}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -385,17 +387,17 @@ export default function LoginScreen() {
                 style={styles.loginButtonGradient}
               >
                 <Text style={styles.loginButtonText}>
-                  {isLoading ? "Connexion..." : "Se connecter"}
+                  {isLoading ? t("auth.login.loggingIn") : t("auth.login.loginButton")}
                 </Text>
               </LinearGradient>
             </TouchableOpacity>
 
             {/* Register Link */}
             <View style={styles.registerContainer}>
-              <Text style={styles.registerText}>Pas encore de compte ? </Text>
+              <Text style={styles.registerText}>{t("auth.login.noAccount")}</Text>
               <TouchableOpacity onPress={() => router.push("/register")}>
                 <Text style={[styles.registerLink, { color: themeColors.primary }]}>
-                  Créer un compte
+                  {t("auth.login.createAccount")}
                 </Text>
               </TouchableOpacity>
             </View>

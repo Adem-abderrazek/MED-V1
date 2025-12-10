@@ -10,9 +10,11 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter, Stack } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useLanguage } from '../contexts/LanguageContext';
 
 export default function TermsScreen() {
   const router = useRouter();
+  const { t, isRTL } = useLanguage();
 
   return (
     <>
@@ -35,7 +37,7 @@ export default function TermsScreen() {
           }}>
             <Ionicons name="arrow-back" size={24} color="white" />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Conditions d'utilisation</Text>
+          <Text style={styles.headerTitle}>{t('terms.title')}</Text>
           <View style={styles.headerSpacer} />
         </LinearGradient>
 
@@ -49,79 +51,75 @@ export default function TermsScreen() {
                 <Ionicons name="document-text" size={48} color="#4facfe" />
               </View>
               
-              <Text style={styles.lastUpdated}>Dernière mise à jour: Octobre 2024</Text>
+              <Text style={styles.lastUpdated}>{t('terms.lastUpdated')}</Text>
 
               <View style={styles.textSection}>
-                <Text style={styles.sectionTitle}>1. Acceptation des conditions</Text>
+                <Text style={styles.sectionTitle}>{t('terms.sections.acceptance.title')}</Text>
                 <Text style={styles.paragraph}>
-                  En accédant et en utilisant l'application MediCare, vous acceptez d'être lié par ces conditions d'utilisation. 
-                  Si vous n'acceptez pas ces conditions, veuillez ne pas utiliser l'application.
+                  {t('terms.sections.acceptance.content')}
                 </Text>
               </View>
 
               <View style={styles.textSection}>
-                <Text style={styles.sectionTitle}>2. Description du service</Text>
+                <Text style={styles.sectionTitle}>{t('terms.sections.description.title')}</Text>
                 <Text style={styles.paragraph}>
-                  MediCare est une application de gestion des médicaments et de suivi médical destinée aux patients, 
-                  tuteurs et médecins. L'application permet de:
+                  {t('terms.sections.description.content')}
                 </Text>
-                <Text style={styles.bulletPoint}>• Gérer les prescriptions médicales</Text>
-                <Text style={styles.bulletPoint}>• Recevoir des rappels pour les prises de médicaments</Text>
-                <Text style={styles.bulletPoint}>• Suivre l'observance thérapeutique</Text>
-                <Text style={styles.bulletPoint}>• Communiquer avec les professionnels de santé</Text>
+                <Text style={styles.bulletPoint}>• {t('terms.sections.description.points.manage')}</Text>
+                <Text style={styles.bulletPoint}>• {t('terms.sections.description.points.reminders')}</Text>
+                <Text style={styles.bulletPoint}>• {t('terms.sections.description.points.tracking')}</Text>
+                <Text style={styles.bulletPoint}>• {t('terms.sections.description.points.communication')}</Text>
               </View>
 
               <View style={styles.textSection}>
-                <Text style={styles.sectionTitle}>3. Responsabilités de l'utilisateur</Text>
+                <Text style={styles.sectionTitle}>{t('terms.sections.responsibilities.title')}</Text>
                 <Text style={styles.paragraph}>
-                  Vous êtes responsable de:
+                  {t('terms.sections.responsibilities.content')}
                 </Text>
-                <Text style={styles.bulletPoint}>• Maintenir la confidentialité de vos identifiants de connexion</Text>
-                <Text style={styles.bulletPoint}>• Fournir des informations exactes et à jour</Text>
-                <Text style={styles.bulletPoint}>• Utiliser l'application conformément à la loi</Text>
-                <Text style={styles.bulletPoint}>• Ne pas partager vos codes de vérification</Text>
+                <Text style={styles.bulletPoint}>• {t('terms.sections.responsibilities.points.credentials')}</Text>
+                <Text style={styles.bulletPoint}>• {t('terms.sections.responsibilities.points.information')}</Text>
+                <Text style={styles.bulletPoint}>• {t('terms.sections.responsibilities.points.lawful')}</Text>
+                <Text style={styles.bulletPoint}>• {t('terms.sections.responsibilities.points.verification')}</Text>
               </View>
 
               <View style={styles.textSection}>
-                <Text style={styles.sectionTitle}>4. Protection des données médicales</Text>
+                <Text style={styles.sectionTitle}>{t('terms.sections.dataProtection.title')}</Text>
                 <Text style={styles.paragraph}>
-                  Vos données médicales sont protégées conformément aux réglementations en vigueur sur la protection 
-                  des données de santé. Nous nous engageons à:
+                  {t('terms.sections.dataProtection.content')}
                 </Text>
-                <Text style={styles.bulletPoint}>• Chiffrer toutes les données sensibles</Text>
-                <Text style={styles.bulletPoint}>• Ne jamais partager vos données sans votre consentement</Text>
-                <Text style={styles.bulletPoint}>• Respecter le secret médical</Text>
-                <Text style={styles.bulletPoint}>• Sécuriser l'accès à vos informations</Text>
+                <Text style={styles.bulletPoint}>• {t('terms.sections.dataProtection.points.encryption')}</Text>
+                <Text style={styles.bulletPoint}>• {t('terms.sections.dataProtection.points.sharing')}</Text>
+                <Text style={styles.bulletPoint}>• {t('terms.sections.dataProtection.points.secrecy')}</Text>
+                <Text style={styles.bulletPoint}>• {t('terms.sections.dataProtection.points.security')}</Text>
               </View>
 
               <View style={styles.textSection}>
-                <Text style={styles.sectionTitle}>5. Limitation de responsabilité</Text>
+                <Text style={styles.sectionTitle}>{t('terms.sections.liability.title')}</Text>
                 <Text style={styles.paragraph}>
-                  MediCare est un outil d'aide à la gestion médicale. Il ne remplace pas:
+                  {t('terms.sections.liability.content')}
                 </Text>
-                <Text style={styles.bulletPoint}>• Les consultations médicales</Text>
-                <Text style={styles.bulletPoint}>• Les diagnostics professionnels</Text>
-                <Text style={styles.bulletPoint}>• Les conseils médicaux personnalisés</Text>
-                <Text style={styles.paragraph} style={{ marginTop: 12 }}>
-                  En cas d'urgence médicale, contactez immédiatement les services d'urgence.
-                </Text>
-              </View>
-
-              <View style={styles.textSection}>
-                <Text style={styles.sectionTitle}>6. Modifications des conditions</Text>
-                <Text style={styles.paragraph}>
-                  Nous nous réservons le droit de modifier ces conditions à tout moment. 
-                  Les utilisateurs seront informés des modifications importantes par notification.
+                <Text style={styles.bulletPoint}>• {t('terms.sections.liability.points.consultations')}</Text>
+                <Text style={styles.bulletPoint}>• {t('terms.sections.liability.points.diagnostics')}</Text>
+                <Text style={styles.bulletPoint}>• {t('terms.sections.liability.points.advice')}</Text>
+                <Text style={[styles.paragraph, { marginTop: 12 }]}>
+                  {t('terms.sections.liability.emergency')}
                 </Text>
               </View>
 
               <View style={styles.textSection}>
-                <Text style={styles.sectionTitle}>7. Contact</Text>
+                <Text style={styles.sectionTitle}>{t('terms.sections.modifications.title')}</Text>
                 <Text style={styles.paragraph}>
-                  Pour toute question concernant ces conditions, contactez-nous:
+                  {t('terms.sections.modifications.content')}
                 </Text>
-                <Text style={styles.bulletPoint}>• Email: support@medicare.tn</Text>
-                <Text style={styles.bulletPoint}>• Téléphone: +216 XX XXX XXX</Text>
+              </View>
+
+              <View style={styles.textSection}>
+                <Text style={styles.sectionTitle}>{t('terms.sections.contact.title')}</Text>
+                <Text style={styles.paragraph}>
+                  {t('terms.sections.contact.content')}
+                </Text>
+                <Text style={styles.bulletPoint}>• {t('terms.sections.contact.email')}</Text>
+                <Text style={styles.bulletPoint}>• {t('terms.sections.contact.phone')}</Text>
               </View>
             </LinearGradient>
           </View>

@@ -20,6 +20,7 @@ import localReminderService from '../services/localReminderService';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import apiService from '../services/api';
 import * as FileSystem from 'expo-file-system/legacy';
+import { useLanguage } from '../contexts/LanguageContext';
 
 const { width, height } = Dimensions.get('window');
 
@@ -45,6 +46,7 @@ const COLORS = {
 
 export default function MedicationAlarmScreen() {
   const router = useRouter();
+  const { t, isRTL } = useLanguage();
   const params = useLocalSearchParams<AlarmParams>();
   
   const [currentTime, setCurrentTime] = useState(new Date());
@@ -57,7 +59,7 @@ export default function MedicationAlarmScreen() {
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const scaleAnim = useRef(new Animated.Value(0.8)).current;
   
-  const medicationName = params.medicationName || 'Médicament';
+  const medicationName = params.medicationName || t('alarm.medication');
   const dosage = params.dosage || '';
   const reminderId = params.reminderId || '';
   
@@ -397,13 +399,13 @@ export default function MedicationAlarmScreen() {
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
           >
-            <Text style={styles.alarmLabel}>💊 RAPPEL MÉDICAMENT</Text>
+            <Text style={styles.alarmLabel}>💊 {t('alarm.title').toUpperCase()}</Text>
             <Text style={styles.medicationName}>{medicationName}</Text>
-            {dosage && <Text style={styles.dosageText}>{dosage}</Text>}
+            {dosage && <Text style={styles.dosageText}>{t('alarm.dosage')}: {dosage}</Text>}
             <View style={styles.instructionsContainer}>
-              <Text style={styles.instructionsLabel}>📋 Instructions:</Text>
+              <Text style={styles.instructionsLabel}>📋 {t('alarm.instructions')}:</Text>
               <Text style={styles.instructionsText}>
-                {instructions || 'Prenez votre médicament selon les instructions de votre médecin'}
+                {instructions || t('alarm.defaultInstructions')}
               </Text>
             </View>
           </LinearGradient>
@@ -424,7 +426,9 @@ export default function MedicationAlarmScreen() {
                 end={{ x: 1, y: 0 }}
               >
                 <Ionicons name="checkmark-circle" size={32} color="white" />
-                <Text style={styles.buttonText}>J'ai pris</Text>
+                <Text style={styles.buttonText}>
+                  {isProcessing ? t('alarm.confirming') : t('alarm.confirm')}
+                </Text>
               </LinearGradient>
             </TouchableOpacity>
 
@@ -442,7 +446,9 @@ export default function MedicationAlarmScreen() {
                 end={{ x: 1, y: 0 }}
               >
                 <Ionicons name="time" size={32} color="white" />
-                <Text style={styles.buttonText}>5 min</Text>
+                <Text style={styles.buttonText}>
+                  {isProcessing ? t('alarm.snoozing') : t('alarm.snooze')}
+                </Text>
               </LinearGradient>
             </TouchableOpacity>
           </View>
@@ -458,7 +464,7 @@ export default function MedicationAlarmScreen() {
               ]}
             >
               <Ionicons name="volume-high" size={20} color={COLORS.primary} />
-              <Text style={styles.audioText}>Message du médecin en cours...</Text>
+              <Text style={styles.audioText}>{t('alarm.doctorMessage')}</Text>
             </Animated.View>
           )}
         </Animated.View>

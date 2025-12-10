@@ -8,6 +8,7 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
+import { useLanguage } from '../contexts/LanguageContext';
 
 interface FeedbackModalProps {
   visible: boolean;
@@ -27,9 +28,12 @@ export default function FeedbackModal({
   message,
   onConfirm,
   onCancel,
-  confirmText = 'OK',
-  cancelText = 'Annuler',
+  confirmText,
+  cancelText,
 }: FeedbackModalProps) {
+  const { t } = useLanguage();
+  const defaultConfirmText = confirmText || t('common.buttons.ok');
+  const defaultCancelText = cancelText || t('common.buttons.cancel');
   const getIcon = () => {
     switch (type) {
       case 'success':
@@ -87,7 +91,7 @@ export default function FeedbackModal({
                   style={[styles.button, styles.cancelButton]}
                   onPress={onCancel}
                 >
-                  <Text style={styles.cancelButtonText}>{cancelText}</Text>
+                  <Text style={styles.cancelButtonText}>{defaultCancelText}</Text>
                 </TouchableOpacity>
               )}
               
@@ -101,7 +105,7 @@ export default function FeedbackModal({
                   end={{ x: 1, y: 0 }}
                   style={styles.confirmButtonGradient}
                 >
-                  <Text style={styles.confirmButtonText}>{confirmText}</Text>
+                  <Text style={styles.confirmButtonText}>{defaultConfirmText}</Text>
                 </LinearGradient>
               </TouchableOpacity>
             </View>

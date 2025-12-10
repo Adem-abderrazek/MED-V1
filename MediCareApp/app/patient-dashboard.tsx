@@ -22,6 +22,8 @@ import CustomModal from '../components/Modal';
 import { notificationService } from '../services/notificationService';
 import { formatTime } from '../utils/timeFormatting';
 import { alarmService } from '../services/alarmService';
+import { useLanguage } from '../contexts/LanguageContext';
+import { getLocaleString, getDayName, getMonthName } from '../utils/dateFormatting';
 
 const { width } = Dimensions.get('window');
 
@@ -67,6 +69,7 @@ interface DateItem {
 
 export default function PatientDashboardScreen() {
   const router = useRouter();
+  const { t, isRTL, currentLanguage } = useLanguage();
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [medications, setMedications] = useState<Medication[]>([]);
   const [stats, setStats] = useState<DashboardStats>({
@@ -86,6 +89,7 @@ export default function PatientDashboardScreen() {
   const [hasCheckedInitialSync, setHasCheckedInitialSync] = useState(false);
   const [isOnline, setIsOnline] = useState(true);
   const [pendingSyncCount, setPendingSyncCount] = useState(0);
+  const [userName, setUserName] = useState<string>('');
   
   // Use refs to track sync status and function without causing re-renders
   const isSyncingRef = useRef(false);
@@ -111,24 +115,23 @@ export default function PatientDashboardScreen() {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
+
     for (let i = -7; i <= 6; i++) {
       const date = new Date(today);
       date.setDate(today.getDate() + i);
       
-      const dayNames = ['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam'];
-      const monthNames = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin', 'Juil', 'Aoû', 'Sep', 'Oct', 'Nov', 'Déc'];
-      
+      // Use language-aware date formatting
       dates.push({
         date: date,
-        dayName: dayNames[date.getDay()],
+        dayName: getDayName(date, currentLanguage),
         dayNumber: date.getDate(),
-        monthName: monthNames[date.getMonth()],
+        monthName: getMonthName(date, currentLanguage),
         isToday: i === 0,
       });
     }
     
     return dates;
-  }, []);
+  }, [currentLanguage]); // Re-compute when language changes
 
   const showModal = useCallback((
     title: string,
@@ -143,7 +146,7 @@ export default function PatientDashboardScreen() {
     try {
       const storedToken = await AsyncStorage.getItem('userToken');
       if (!storedToken) {
-        showModal('Erreur', 'Session expirée. Veuillez vous reconnecter.', 'error');
+        showModal(t('common.errors.genericError'), t('dashboard.patient.errors.sessionExpired'), 'error');
         router.push('/login');
         return;
       }
@@ -152,12 +155,15 @@ export default function PatientDashboardScreen() {
       const userDataStr = await AsyncStorage.getItem('userData');
       if (!userDataStr) {
         console.error('❌ User data not found in storage');
-        showModal('Erreur', 'Données utilisateur introuvables. Veuillez vous reconnecter.', 'error');
+        showModal(t('common.errors.genericError'), t('dashboard.patient.errors.userDataNotFound'), 'error');
         router.push('/login');
         return;
       }
 
       const userData = JSON.parse(userDataStr);
+      if (userData.firstName) {
+        setUserName(userData.firstName);
+      }
       if (userData.userType !== 'patient') {
         console.warn(`⚠️ Access denied: User type is '${userData.userType}', but patient endpoint was called`);
         console.warn('⚠️ Redirecting to appropriate dashboard...');
@@ -225,7 +231,7 @@ export default function PatientDashboardScreen() {
           console.error('Error during redirect:', redirectError);
         }
       }
-      showModal('Erreur', 'Impossible de charger les médicaments', 'error');
+      showModal(t('common.errors.genericError'), t('dashboard.patient.errors.loadError'), 'error');
     } finally {
       setIsLoading(false);
       setIsRefreshing(false);
@@ -246,7 +252,7 @@ export default function PatientDashboardScreen() {
       if (!userDataStr) {
         console.error('❌ User data not found in storage');
         if (!silent) {
-          showModal('Erreur', 'Données utilisateur introuvables. Veuillez vous reconnecter.', 'error');
+          showModal(t('common.errors.genericError'), t('dashboard.patient.errors.userDataNotFound'), 'error');
         }
         return;
       }
@@ -255,7 +261,7 @@ export default function PatientDashboardScreen() {
       if (userData.userType !== 'patient') {
         console.warn(`⚠️ Access denied: User type is '${userData.userType}', but patient sync was attempted`);
         if (!silent) {
-          showModal('Erreur', 'Accès refusé: Cette fonctionnalité est réservée aux patients.', 'error');
+          showModal(t('common.errors.genericError'), t('dashboard.patient.errors.accessDenied'), 'error');
         }
         // Redirect to appropriate dashboard
         if (userData.userType === 'medecin' || userData.userType === 'tuteur') {
@@ -277,11 +283,12 @@ export default function PatientDashboardScreen() {
         if (!silent) {
           // Show audio download count if any were downloaded
           const audioInfo = result.audioDownloaded > 0
-            ? `\n🎤 ${result.audioDownloaded} messages vocaux téléchargés`
+            ? `\n🎤 ${t('dashboard.patient.sync.success.audioDownloaded', { count: result.audioDownloaded })}`
             : '';
+          const syncMessage = t('dashboard.patient.sync.success.message', { count: result.scheduled });
           showModal(
-            'Synchronisation réussie',
-            `${result.scheduled} rappels synchronisés${audioInfo}`,
+            t('dashboard.patient.sync.success.title'),
+            syncMessage + audioInfo,
             'success'
           );
         } else {
@@ -294,7 +301,7 @@ export default function PatientDashboardScreen() {
         setHasUpdates(false);
       } else {
         if (!silent) {
-          showModal('Erreur de synchronisation', 'Une erreur est survenue lors de la synchronisation', 'error');
+          showModal(t('dashboard.patient.errors.syncError'), t('dashboard.patient.errors.syncErrorMessage'), 'error');
         }
       }
     } catch (error: any) {
@@ -316,7 +323,7 @@ export default function PatientDashboardScreen() {
         }
       }
       if (!silent) {
-        showModal('Erreur', 'Impossible de synchroniser les rappels', 'error');
+        showModal(t('common.errors.genericError'), t('dashboard.patient.errors.syncRemindersError'), 'error');
       }
     } finally {
       // Reset both ref and state
@@ -701,24 +708,26 @@ export default function PatientDashboardScreen() {
       
       if (result.success) {
         console.log('✅ Medication confirmed successfully');
-        showModal('Succès', 'Médicament marqué comme pris!', 'success');
+        showModal(t('common.success.updated'), t('dashboard.patient.actions.markTaken'), 'success');
         
         // Reload medications to show updated status
         console.log('🔄 Reloading medications to show updated status...');
         await loadMedicationsForDate(selectedDate);
       } else {
         console.error('❌ Failed to confirm medication:', result.message);
-        showModal('Erreur', result.message || 'Impossible de marquer le médicament', 'error');
+        showModal(t('common.errors.genericError'), result.message || t('dashboard.patient.errors.markError'), 'error');
       }
     } catch (error: any) {
       console.error('Error marking medication:', error);
       
       // Enhanced error handling for time validation
-      const errorMessage = error?.message || 'Une erreur est survenue';
-      if (errorMessage.includes('minutes de l\'heure prévue') || errorMessage.includes('déjà été marqué')) {
-        showModal('Information', errorMessage, 'warning');
+      const errorMessage = error?.message || t('common.errors.genericError');
+      if (errorMessage.includes('minutes de l\'heure prévue') || errorMessage.includes('déjà été marqué') || 
+          errorMessage.includes('minutes before') || errorMessage.includes('already been marked') ||
+          errorMessage.includes('دقائق') || errorMessage.includes('تم التحديد')) {
+        showModal(t('common.buttons.info'), errorMessage, 'warning');
       } else {
-        showModal('Erreur', errorMessage, 'error');
+        showModal(t('common.errors.genericError'), errorMessage, 'error');
       }
     }
   }, [token, selectedDate, loadMedicationsForDate, syncNativeAlarmConfirmations, showModal]);
@@ -788,15 +797,15 @@ export default function PatientDashboardScreen() {
   const getMedicationStatusText = (status: string) => {
     switch (status) {
       case 'taken':
-        return 'Pris';
+        return t('dashboard.patient.status.taken');
       case 'missed':
-        return 'Manqué';
+        return t('dashboard.patient.status.missed');
       case 'pending':
-        return 'En attente';
+        return t('dashboard.patient.status.pending');
       case 'scheduled':
-        return 'Programmé';
+        return t('dashboard.patient.status.scheduled');
       default:
-        return 'Non défini';
+        return status;
     }
   };
 
@@ -929,7 +938,7 @@ export default function PatientDashboardScreen() {
           {showNotTakenBadge && (
             <View style={styles.notTakenBadge}>
               <Ionicons name="close-circle" size={16} color={COLORS.error[0]} />
-              <Text style={styles.notTakenText}>Non Pris</Text>
+              <Text style={styles.notTakenText}>{t('dashboard.patient.status.missed')}</Text>
             </View>
           )}
 
@@ -952,7 +961,7 @@ export default function PatientDashboardScreen() {
                 style={styles.takeButtonGradient}
               >
                 <Ionicons name="checkmark" size={20} color="white" />
-                <Text style={styles.takeButtonText}>Marquer comme pris</Text>
+                <Text style={styles.takeButtonText}>{t('dashboard.patient.actions.markTaken')}</Text>
               </LinearGradient>
             </TouchableOpacity>
           )}
@@ -977,12 +986,12 @@ export default function PatientDashboardScreen() {
           <View style={styles.headerContent}>
             <View style={styles.headerTop}>
               <View>
-                <Text style={styles.welcomeText}>Bonjour, Patient</Text>
-                <Text style={styles.headerTitle}>Mon Traitement</Text>
+                <Text style={styles.welcomeText}>{t('dashboard.patient.greeting')}, {userName || t('dashboard.patient.title')}</Text>
+                <Text style={styles.headerTitle}>{t('dashboard.patient.title')}</Text>
                 {!isOnline && (
                   <View style={styles.offlineBanner}>
                     <Ionicons name="cloud-offline" size={14} color="#FF6B6B" />
-                    <Text style={styles.offlineText}>Mode hors ligne</Text>
+                    <Text style={styles.offlineText}>{t('common.errors.networkError')}</Text>
                   </View>
                 )}
               </View>
@@ -1018,17 +1027,17 @@ export default function PatientDashboardScreen() {
               <View style={styles.statCard}>
                 <Ionicons name="checkmark-circle" size={24} color="white" />
                 <Text style={styles.statNumber}>{stats.takenToday}</Text>
-                <Text style={styles.statLabel}>Pris</Text>
+                <Text style={styles.statLabel}>{t('dashboard.patient.stats.taken')}</Text>
               </View>
               <View style={styles.statCard}>
                 <Ionicons name="medical" size={24} color="white" />
                 <Text style={styles.statNumber}>{stats.totalMedicationsToday}</Text>
-                <Text style={styles.statLabel}>Total</Text>
+                <Text style={styles.statLabel}>{t('dashboard.patient.stats.totalToday')}</Text>
               </View>
               <View style={styles.statCard}>
                 <Ionicons name="stats-chart" size={24} color="white" />
                 <Text style={styles.statNumber}>{stats.adherenceRate}%</Text>
-                <Text style={styles.statLabel}>Observance</Text>
+                <Text style={styles.statLabel}>{t('dashboard.patient.stats.adherence')}</Text>
               </View>
             </View>
           </View>
@@ -1039,7 +1048,7 @@ export default function PatientDashboardScreen() {
           <View style={styles.updateBanner}>
             <Ionicons name="alert-circle" size={20} color={COLORS.warning[0]} />
             <Text style={styles.updateBannerText}>
-              Nouvelles modifications disponibles
+              {t('dashboard.patient.sync.pendingSync')}
             </Text>
             <TouchableOpacity 
               style={styles.updateBannerButton}
@@ -1047,7 +1056,7 @@ export default function PatientDashboardScreen() {
               disabled={isSyncing}
             >
               <Text style={styles.updateBannerButtonText}>
-                {isSyncing ? 'Synchronisation...' : 'Synchroniser'}
+                {isSyncing ? t('dashboard.patient.sync.syncing') : t('dashboard.patient.sync.synced')}
               </Text>
             </TouchableOpacity>
           </View>
@@ -1058,13 +1067,16 @@ export default function PatientDashboardScreen() {
           <View style={styles.syncInfoBanner}>
             <Ionicons name="checkmark-circle" size={16} color={COLORS.success[0]} />
             <Text style={styles.syncInfoText}>
-              Dernière sync: {new Date(lastSyncTime).toLocaleString('fr-FR', {
-                day: '2-digit',
-                month: 'short',
-                hour: '2-digit',
-                minute: '2-digit',
-                timeZone: 'Africa/Tunis'
-              })}
+              {t('dashboard.patient.sync.lastSync')}: {(() => {
+                const date = new Date(lastSyncTime);
+                // Use Western numerals (0-9) for all numbers, only translate month name
+                const day = date.getDate(); // Keep as number, not string to avoid locale conversion
+                const month = getMonthName(date, currentLanguage);
+                const hours = date.getHours();
+                const minutes = date.getMinutes();
+                // Format with Western numerals
+                return `${day} ${month} ${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+              })()}
             </Text>
           </View>
         )}
@@ -1095,9 +1107,9 @@ export default function PatientDashboardScreen() {
           ListEmptyComponent={() => (
             <View style={styles.emptyContainer}>
               <Ionicons name="calendar-outline" size={64} color={COLORS.textTertiary} />
-              <Text style={styles.emptyTitle}>Aucun médicament</Text>
+              <Text style={styles.emptyTitle}>{t('dashboard.patient.noMedications')}</Text>
               <Text style={styles.emptySubtitle}>
-                Pas de médicament programmé pour cette date
+                {t('dashboard.patient.noMedicationsMessage')}
               </Text>
             </View>
           )}

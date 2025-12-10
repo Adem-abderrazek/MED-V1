@@ -19,9 +19,11 @@ import DatePicker from "../components/DatePicker";
 import InternationalPhoneInput, { PhoneInputValue } from "../components/InternationalPhoneInput";
 import { register } from '../services/api/common';
 import { getThemeColors } from '../config/theme';
+import { useLanguage } from '../contexts/LanguageContext';
 
 export default function RegisterScreen() {
   const router = useRouter();
+  const { t, isRTL } = useLanguage();
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
@@ -91,9 +93,9 @@ export default function RegisterScreen() {
     if (/\d/.test(password)) score++;
     if (/[!@#$%^&*(),.?":{}|<>]/.test(password)) score++;
 
-    if (score <= 2) return { strength: score, text: "Faible", color: "#EF4444" };
-    if (score <= 4) return { strength: score, text: "Moyen", color: "#F59E0B" };
-    return { strength: score, text: "Fort", color: "#10B981" };
+    if (score <= 2) return { strength: score, text: t("auth.register.passwordStrength.weak"), color: "#EF4444" };
+    if (score <= 4) return { strength: score, text: t("auth.register.passwordStrength.medium"), color: "#F59E0B" };
+    return { strength: score, text: t("auth.register.passwordStrength.strong"), color: "#10B981" };
   };
 
   const passwordStrength = getPasswordStrength();
@@ -103,7 +105,7 @@ export default function RegisterScreen() {
 
     // Validation
     if (!firstName.trim() || !lastName.trim() || !email.trim() || !phoneNumber.trim() || !password || !confirmPassword) {
-      showModal("error", "Champs manquants", "Veuillez remplir tous les champs obligatoires");
+      showModal("error", t("auth.register.errors.missingFields"), t("auth.register.errors.missingFieldsMessage"));
       return;
     }
 
@@ -114,19 +116,19 @@ export default function RegisterScreen() {
     selectedDate.setHours(0, 0, 0, 0);
     
     if (selectedDate.getTime() >= today.getTime()) {
-      showModal("error", "Date de naissance invalide", "Veuillez sélectionner votre date de naissance");
+      showModal("error", t("auth.register.errors.invalidDate"), t("auth.register.errors.invalidDateMessage"));
       return;
     }
 
     if (!validateEmail(email)) {
-      showModal("error", "Email invalide", "Veuillez saisir une adresse email valide");
+      showModal("error", t("auth.register.errors.invalidEmail"), t("auth.register.errors.invalidEmailMessage"));
       return;
     }
 
     // Validate phone number using the phone input component
     if (!phoneValidation || !phoneValidation.isValid) {
-      setPhoneError("Veuillez saisir un numéro de téléphone valide");
-      showModal("error", "Numéro invalide", "Veuillez saisir un numéro de téléphone valide");
+      setPhoneError(t("components.phoneInput.error"));
+      showModal("error", t("auth.register.errors.invalidPhone"), t("auth.register.errors.invalidPhoneMessage"));
       return;
     }
 
@@ -134,7 +136,7 @@ export default function RegisterScreen() {
     const phoneNumberE164 = phoneValidation.e164;
 
     if (password !== confirmPassword) {
-      showModal("error", "Mots de passe différents", "Les mots de passe ne correspondent pas");
+      showModal("error", t("auth.register.errors.passwordMismatch"), t("auth.register.errors.passwordMismatchMessage"));
       return;
     }
 
@@ -144,17 +146,17 @@ export default function RegisterScreen() {
     const hasNumbers = /\d/.test(password);
 
     if (password.length < 6) {
-      showModal("error", "Mot de passe faible", "Le mot de passe doit contenir au moins 6 caractères");
+      showModal("error", t("auth.register.errors.weakPassword"), t("auth.register.errors.weakPasswordMessage"));
       return;
     }
 
     if (!hasUpperCase || !hasLowerCase || !hasNumbers) {
-      showModal("warning", "Mot de passe faible", "Le mot de passe doit contenir au moins une majuscule, une minuscule et un chiffre");
+      showModal("warning", t("auth.register.errors.weakPassword"), t("auth.register.errors.weakPasswordDetails"));
       return;
     }
 
     if (!validateAge(dateNaissance)) {
-      showModal("error", "Âge invalide", "Vous devez avoir au moins 13 ans pour créer un compte");
+      showModal("error", t("auth.register.errors.invalidAge"), t("auth.register.errors.invalidAgeMessage"));
       return;
     }
 
@@ -174,22 +176,22 @@ export default function RegisterScreen() {
       setIsLoading(false);
       
       if (result.success) {
-        showModal("success", "Compte créé!", "Votre compte a été créé avec succès. Vous pouvez maintenant vous connecter.");
+        showModal("success", t("auth.register.success.title"), t("auth.register.success.message"));
       } else {
-        showModal("error", "Erreur d'inscription", result.message || "Une erreur est survenue lors de la création du compte.");
+        showModal("error", t("auth.register.errors.registrationError"), result.message || t("auth.register.errors.registrationErrorMessage"));
       }
     } catch (error: any) {
       setIsLoading(false);
       console.error('Registration error:', error);
       
-      let errorMessage = "Une erreur est survenue lors de la création du compte.";
+      let errorMessage = t("auth.register.errors.registrationErrorMessage");
       if (error.response?.data?.message) {
         errorMessage = error.response.data.message;
       } else if (error.message) {
         errorMessage = error.message;
       }
       
-      showModal("error", "Erreur d'inscription", errorMessage);
+      showModal("error", t("auth.register.errors.registrationError"), errorMessage);
     }
   };
 
@@ -211,7 +213,7 @@ export default function RegisterScreen() {
             >
               <Ionicons name="arrow-back" size={24} color="white" />
             </TouchableOpacity>
-            <Text style={styles.headerTitle}>Inscription</Text>
+            <Text style={styles.headerTitle}>{t("auth.register.headerTitle")}</Text>
           </View>
 
           <ScrollView
@@ -221,9 +223,9 @@ export default function RegisterScreen() {
           >
             {/* Form */}
             <View style={styles.formContainer}>
-              <Text style={styles.title}>Créer un compte</Text>
+              <Text style={styles.title}>{t("auth.register.title")}</Text>
               <Text style={styles.subtitle}>
-                Rejoignez MediCare+ et prenez le contrôle de votre santé
+                {t("auth.register.subtitle")}
               </Text>
 
             {/* Name Inputs */}
@@ -234,7 +236,7 @@ export default function RegisterScreen() {
                 </View>
                 <TextInput
                   style={styles.input}
-                  placeholder="Prénom"
+                  placeholder={t("auth.register.firstNamePlaceholder")}
                   placeholderTextColor="rgba(255, 255, 255, 0.6)"
                   value={formData.firstName}
                   onChangeText={(value) => handleInputChange("firstName", value)}
@@ -249,7 +251,7 @@ export default function RegisterScreen() {
                 </View>
                 <TextInput
                   style={styles.input}
-                  placeholder="Nom"
+                  placeholder={t("auth.register.lastNamePlaceholder")}
                   placeholderTextColor="rgba(255, 255, 255, 0.6)"
                   value={formData.lastName}
                   onChangeText={(value) => handleInputChange("lastName", value)}
@@ -266,7 +268,7 @@ export default function RegisterScreen() {
                 </View>
                 <TextInput
                   style={styles.input}
-                  placeholder="Adresse e-mail"
+                  placeholder={t("auth.register.emailPlaceholder")}
                   placeholderTextColor="rgba(255, 255, 255, 0.6)"
                   value={formData.email}
                   onChangeText={(value) => handleInputChange("email", value)}
@@ -283,14 +285,14 @@ export default function RegisterScreen() {
                   onChange={handlePhoneChange}
                   onBlur={() => {
                     if (phoneValidation && !phoneValidation.isValid) {
-                      setPhoneError("Veuillez saisir un numéro de téléphone valide");
+                      setPhoneError(t("components.phoneInput.error"));
                     }
                   }}
                   defaultCountry="TN"
                   required={true}
                   error={phoneError || undefined}
                   theme="patient"
-                  placeholder="Numéro de téléphone"
+                  placeholder={t("auth.register.phonePlaceholder")}
                   accessibilityLabel="Phone number"
                   testID="register-phone-input"
                 />
@@ -306,7 +308,7 @@ export default function RegisterScreen() {
               <DatePicker
                 selectedDate={formData.dateNaissance}
                 onDateChange={(date) => handleInputChange("dateNaissance", date)}
-                placeholder="Date de naissance"
+                placeholder={t("auth.register.dateOfBirthPlaceholder")}
               />
 
               {/* Password Input */}
@@ -316,7 +318,7 @@ export default function RegisterScreen() {
                 </View>
                 <TextInput
                   style={styles.input}
-                  placeholder="Mot de passe"
+                  placeholder={t("auth.register.passwordPlaceholder")}
                   placeholderTextColor="rgba(255, 255, 255, 0.6)"
                   value={formData.password}
                   onChangeText={(value) => handleInputChange("password", value)}
@@ -355,7 +357,7 @@ export default function RegisterScreen() {
 
               {/* Password Requirements */}
               <View style={styles.requirementsContainer}>
-                <Text style={styles.requirementsTitle}>Le mot de passe doit contenir :</Text>
+                <Text style={styles.requirementsTitle}>{t("auth.register.passwordRequirements.title")}</Text>
                 <View style={styles.requirement}>
                   <Ionicons 
                     name={formData.password.length >= 6 ? "checkmark-circle" : "ellipse-outline"} 
@@ -366,7 +368,7 @@ export default function RegisterScreen() {
                     styles.requirementText,
                     formData.password.length >= 6 && styles.requirementTextMet
                   ]}>
-                    Au moins 6 caractères
+                    {t("auth.register.passwordRequirements.minLength")}
                   </Text>
                 </View>
                 <View style={styles.requirement}>
@@ -379,7 +381,7 @@ export default function RegisterScreen() {
                     styles.requirementText,
                     /[A-Z]/.test(formData.password) && styles.requirementTextMet
                   ]}>
-                    Une majuscule
+                    {t("auth.register.passwordRequirements.uppercase")}
                   </Text>
                 </View>
                 <View style={styles.requirement}>
@@ -392,7 +394,7 @@ export default function RegisterScreen() {
                     styles.requirementText,
                     /[a-z]/.test(formData.password) && styles.requirementTextMet
                   ]}>
-                    Une minuscule
+                    {t("auth.register.passwordRequirements.lowercase")}
                   </Text>
                 </View>
                 <View style={styles.requirement}>
@@ -405,7 +407,7 @@ export default function RegisterScreen() {
                     styles.requirementText,
                     /\d/.test(formData.password) && styles.requirementTextMet
                   ]}>
-                    Un chiffre
+                    {t("auth.register.passwordRequirements.number")}
                   </Text>
                 </View>
               </View>
@@ -417,7 +419,7 @@ export default function RegisterScreen() {
                 </View>
                 <TextInput
                   style={styles.input}
-                  placeholder="Confirmer le mot de passe"
+                  placeholder={t("auth.register.confirmPasswordPlaceholder")}
                   placeholderTextColor="rgba(255, 255, 255, 0.6)"
                   value={formData.confirmPassword}
                   onChangeText={(value) => handleInputChange("confirmPassword", value)}
@@ -439,10 +441,10 @@ export default function RegisterScreen() {
               {/* Terms */}
               <View style={styles.termsContainer}>
                 <Text style={styles.termsText}>
-                  En créant un compte, vous acceptez nos{" "}
-                  <Text style={styles.termsLink}>Conditions d'utilisation</Text>
-                  {" "}et notre{" "}
-                  <Text style={styles.termsLink}>Politique de confidentialité</Text>
+                  {t("auth.register.terms.text")}{" "}
+                  <Text style={styles.termsLink} onPress={() => router.push("/terms")}>{t("auth.register.terms.termsLink")}</Text>
+                  {" "}{t("auth.register.terms.and")}{" "}
+                  <Text style={styles.termsLink} onPress={() => router.push("/privacy-policy")}>{t("auth.register.terms.privacyLink")}</Text>
                 </Text>
               </View>
 
@@ -459,16 +461,16 @@ export default function RegisterScreen() {
                   style={styles.registerButtonGradient}
                 >
                   <Text style={styles.registerButtonText}>
-                    {isLoading ? "Création du compte..." : "Créer mon compte"}
+                    {isLoading ? t("auth.register.registering") : t("auth.register.registerButton")}
                   </Text>
                 </LinearGradient>
               </TouchableOpacity>
 
               {/* Login Link */}
               <View style={styles.loginContainer}>
-                <Text style={styles.loginText}>Déjà un compte ? </Text>
+                <Text style={styles.loginText}>{t("auth.register.hasAccount")}</Text>
                 <TouchableOpacity onPress={() => router.push("/login")}>
-                  <Text style={styles.loginLink}>Se connecter</Text>
+                  <Text style={styles.loginLink}>{t("auth.register.signIn")}</Text>
                 </TouchableOpacity>
               </View>
             </View>

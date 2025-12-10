@@ -16,6 +16,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { getUserProfile, updateUserProfile } from '../services/api/common';
 import FeedbackModal from '../components/FeedbackModal';
+import LanguageSwitcher from '../components/LanguageSwitcher';
+import { useLanguage } from '../contexts/LanguageContext';
 
 // Green theme colors for patients
 const COLORS = {
@@ -47,6 +49,7 @@ interface UserProfile {
 
 export default function PatientProfileSettingsScreen() {
   const router = useRouter();
+  const { t, isRTL } = useLanguage();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -132,8 +135,8 @@ export default function PatientProfileSettingsScreen() {
     setFeedbackModal({
       visible: true,
       type: 'confirm',
-      title: 'Déconnexion',
-      message: 'Êtes-vous sûr de vouloir vous déconnecter ?',
+      title: t('profile.logout'),
+      message: t('profile.logoutConfirm'),
       onConfirm: async () => {
         await AsyncStorage.removeItem('userToken');
         await AsyncStorage.removeItem('userData');
@@ -207,7 +210,7 @@ export default function PatientProfileSettingsScreen() {
             }}>
               <Ionicons name="arrow-back" size={24} color="white" />
             </TouchableOpacity>
-            <Text style={styles.headerTitle}>Mon Profil</Text>
+            <Text style={styles.headerTitle}>{t('profile.title')}</Text>
             <View style={styles.headerSpacer} />
           </LinearGradient>
 
@@ -252,7 +255,7 @@ export default function PatientProfileSettingsScreen() {
                     style={styles.editProfileGradient}
                   >
                     <Ionicons name="create-outline" size={18} color={COLORS.primary} />
-                    <Text style={styles.editProfileText}>Modifier le profil</Text>
+                    <Text style={styles.editProfileText}>{t('profile.edit')}</Text>
                   </LinearGradient>
                 </TouchableOpacity>
               </LinearGradient>
@@ -260,7 +263,7 @@ export default function PatientProfileSettingsScreen() {
 
             {/* Personal Information Section */}
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Informations personnelles</Text>
+              <Text style={styles.sectionTitle}>{t('profile.personalInfo')}</Text>
               <View style={styles.sectionCard}>
                 <LinearGradient
                   colors={COLORS.cardBg}
@@ -268,7 +271,7 @@ export default function PatientProfileSettingsScreen() {
                 >
                 {renderSettingItem(
                   'call',
-                  'Téléphone',
+                  t('common.labels.phone'),
                   profile?.phoneNumber,
                   () => router.push('/patient-edit-profile' as any),
                   false
@@ -279,7 +282,7 @@ export default function PatientProfileSettingsScreen() {
 
             {/* Preferences Section */}
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Préférences</Text>
+              <Text style={styles.sectionTitle}>{t('profile.preferences')}</Text>
               <View style={styles.sectionCard}>
                 <LinearGradient
                   colors={COLORS.cardBg}
@@ -287,8 +290,8 @@ export default function PatientProfileSettingsScreen() {
                 >
                   {renderSettingItem(
                     'notifications',
-                    'Notifications',
-                    'Recevoir les alertes de médicaments',
+                    t('profile.notifications'),
+                    t('profile.notificationsDescription'),
                     undefined,
                     false,
                     <Switch
@@ -298,15 +301,10 @@ export default function PatientProfileSettingsScreen() {
                       thumbColor={notificationsEnabled ? '#fff' : '#f4f3f4'}
                     />
                   )}
-                  {renderSettingItem(
-                    'language',
-                    'Langue',
-                    profile?.language === 'fr' ? 'Français' : profile?.language === 'ar' ? 'العربية' : 'English',
-                    () => {}
-                  )}
+                  <LanguageSwitcher style={{ marginVertical: 8 }} />
                   {renderSettingItem(
                     'time',
-                    'Fuseau horaire',
+                    t('common.labels.timezone'),
                     profile?.timezone || 'Africa/Tunis',
                     () => {},
                     false
@@ -317,7 +315,7 @@ export default function PatientProfileSettingsScreen() {
 
             {/* Health Section */}
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Santé</Text>
+              <Text style={styles.sectionTitle}>{t('medications.title')}</Text>
               <View style={styles.sectionCard}>
                 <LinearGradient
                   colors={COLORS.cardBg}
@@ -325,14 +323,14 @@ export default function PatientProfileSettingsScreen() {
                 >
                   {renderSettingItem(
                     'medical',
-                    'Mes médicaments',
-                    'Voir tous mes traitements',
+                    t('medications.title'),
+                    t('dashboard.patient.title'),
                     () => router.push('/patient-dashboard')
                   )}
                   {renderSettingItem(
                     'stats-chart',
-                    'Historique d\'observance',
-                    'Consulter mes statistiques',
+                    t('profile.adherenceHistory'),
+                    t('profile.viewStats'),
                     () => router.push('/patient-adherence-history' as any)
                   )}
                 </LinearGradient>
@@ -341,7 +339,7 @@ export default function PatientProfileSettingsScreen() {
 
             {/* Security Section */}
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Sécurité</Text>
+              <Text style={styles.sectionTitle}>{t('profile.security')}</Text>
               <View style={styles.sectionCard}>
                 <LinearGradient
                   colors={COLORS.cardBg}
@@ -349,8 +347,8 @@ export default function PatientProfileSettingsScreen() {
                 >
                   {renderSettingItem(
                     'lock-closed',
-                    'Changer le mot de passe',
-                    'Modifier votre mot de passe',
+                    t('profile.changePassword'),
+                    t('profile.changePassword'),
                     () => router.push('/forgot-password')
                   )}
                   {renderSettingItem(
@@ -366,7 +364,7 @@ export default function PatientProfileSettingsScreen() {
 
             {/* Legal Section */}
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Légal</Text>
+              <Text style={styles.sectionTitle}>{t('profile.legal')}</Text>
               <View style={styles.sectionCard}>
                 <LinearGradient
                   colors={COLORS.cardBg}
@@ -374,14 +372,14 @@ export default function PatientProfileSettingsScreen() {
                 >
                   {renderSettingItem(
                     'document-text',
-                    'Conditions d\'utilisation',
-                    'Consulter les CGU',
+                    t('auth.register.terms.termsLink'),
+                    t('auth.register.terms.termsLink'),
                     () => router.push('/terms' as any)
                   )}
                   {renderSettingItem(
                     'shield',
-                    'Politique de confidentialité',
-                    'Protection de vos données',
+                    t('auth.register.terms.privacyLink'),
+                    t('auth.register.terms.privacyLink'),
                     () => router.push('/privacy-policy' as any)
                   )}
                   {renderSettingItem(
@@ -402,7 +400,7 @@ export default function PatientProfileSettingsScreen() {
                 style={styles.logoutGradient}
               >
                 <Ionicons name="log-out-outline" size={22} color="white" />
-                <Text style={styles.logoutText}>Se déconnecter</Text>
+                <Text style={styles.logoutText}>{t('profile.logout')}</Text>
               </LinearGradient>
             </TouchableOpacity>
 

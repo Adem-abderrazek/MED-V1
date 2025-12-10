@@ -19,6 +19,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import apiService from '../services/api';
 import { getDoctorPatients, getDoctorDashboard } from '../services/api/caregiver';
 import { formatTime } from '../utils/timeFormatting';
+import { useLanguage } from '../contexts/LanguageContext';
 
 const { width, height } = Dimensions.get('window');
 
@@ -52,6 +53,7 @@ interface DashboardStats {
 
 export default function DoctorDashboardScreen() {
   const router = useRouter();
+  const { t, isRTL, currentLanguage } = useLanguage();
   const [searchQuery, setSearchQuery] = useState("");
   const [patients, setPatients] = useState<Patient[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -238,6 +240,12 @@ export default function DoctorDashboardScreen() {
     loadUserData();
   }, []);
 
+  // Force re-render when language changes
+  useEffect(() => {
+    console.log(`🌐 Doctor dashboard language changed to: ${currentLanguage}, RTL: ${isRTL}`);
+    // This effect ensures the component re-renders when language changes
+  }, [currentLanguage, isRTL]);
+
   // Helper function to show custom modal
   const showCustomModal = useCallback((
     title: string,
@@ -414,7 +422,7 @@ export default function DoctorDashboardScreen() {
               style={styles.buttonGradient}
             >
               <Ionicons name="person" size={16} color="white" />
-              <Text style={styles.buttonText}>Profil</Text>
+              <Text style={styles.buttonText}>{t('dashboard.doctor.patientCard.viewProfile')}</Text>
             </LinearGradient>
           </TouchableOpacity>
 
@@ -427,7 +435,7 @@ export default function DoctorDashboardScreen() {
               style={styles.buttonGradient}
             >
               <Ionicons name="trash" size={16} color="white" />
-              <Text style={styles.buttonText}>Supprimer</Text>
+              <Text style={styles.buttonText}>{t('dashboard.doctor.patientCard.delete')}</Text>
             </LinearGradient>
           </TouchableOpacity>
         </View>
@@ -449,9 +457,9 @@ export default function DoctorDashboardScreen() {
           <View style={styles.headerTop}>
             <View>
               <Text style={styles.welcomeText}>
-                Bonjour, {userName || (userType === 'tuteur' ? 'Tuteur' : 'Docteur')}
+                {t('dashboard.doctor.greeting')}, {userName || (userType === 'tuteur' ? t('dashboard.doctor.tutor') : t('dashboard.doctor.doctor'))}
               </Text>
-              <Text style={styles.headerTitle}>Tableau de bord</Text>
+              <Text style={styles.headerTitle}>{t('dashboard.doctor.dashboardTitle')}</Text>
             </View>
             <View style={styles.headerButtons}>
               <TouchableOpacity style={styles.profileButton} onPress={() => router.push('/doctor-profile' as any)}>
@@ -469,12 +477,12 @@ export default function DoctorDashboardScreen() {
               <View style={styles.statCard}>
                 <Ionicons name="people" size={24} color="white" />
                 <Text style={styles.statNumber}>{dashboardStats.totalPatients}</Text>
-                <Text style={styles.statLabel}>Patients</Text>
+                <Text style={styles.statLabel}>{t('dashboard.doctor.stats.totalPatients')}</Text>
               </View>
               <View style={styles.statCard}>
                 <Ionicons name="alert-circle" size={24} color="white" />
                 <Text style={styles.statNumber}>{dashboardStats.medicationAlerts?.length || 0}</Text>
-                <Text style={styles.statLabel}>Alertes</Text>
+                <Text style={styles.statLabel}>{t('dashboard.doctor.stats.alerts')}</Text>
               </View>
             </View>
           )}
@@ -487,7 +495,7 @@ export default function DoctorDashboardScreen() {
           <Ionicons name="search" size={20} color="rgba(255, 255, 255, 0.6)" />
           <TextInput
             style={styles.searchInput}
-            placeholder="Rechercher un patient..."
+            placeholder={t('dashboard.doctor.searchPlaceholder')}
             placeholderTextColor="rgba(255, 255, 255, 0.6)"
             value={searchQuery}
             onChangeText={setSearchQuery}
@@ -508,9 +516,9 @@ export default function DoctorDashboardScreen() {
   const renderEmptyState = useCallback(() => (
     <View style={styles.emptyContainer}>
       <Ionicons name="people-outline" size={64} color="rgba(255, 255, 255, 0.3)" />
-      <Text style={styles.emptyTitle}>Aucun patient trouvé</Text>
+      <Text style={styles.emptyTitle}>{t('dashboard.doctor.noPatients')}</Text>
       <Text style={styles.emptySubtitle}>
-        {searchQuery ? 'Aucun patient ne correspond à votre recherche' : 'Commencez par ajouter vos premiers patients'}
+        {searchQuery ? t('dashboard.doctor.noPatientsSearch') : t('dashboard.doctor.noPatientsMessage')}
       </Text>
     </View>
   ), [searchQuery]);
@@ -519,7 +527,10 @@ export default function DoctorDashboardScreen() {
   const keyExtractor = useCallback((item: Patient) => item.id, []);
 
   return (
-  <SafeAreaView style={styles.container}>
+    <SafeAreaView 
+      style={styles.container}
+      key={`doctor-dashboard-${currentLanguage}-${isRTL}`}
+    >
     <LinearGradient
       colors={["#1a1a2e", "#16213e", "#0f3460"]}
       style={styles.background}
@@ -535,9 +546,9 @@ export default function DoctorDashboardScreen() {
           <View style={styles.headerTop}>
             <View>
               <Text style={styles.welcomeText}>
-                Bonjour, {userName || (userType === 'tuteur' ? 'Tuteur' : 'Docteur')}
+                {t('dashboard.doctor.greeting')}, {userName || (userType === 'tuteur' ? t('dashboard.doctor.tutor') : t('dashboard.doctor.doctor'))}
               </Text>
-              <Text style={styles.headerTitle}>Tableau de bord</Text>
+              <Text style={styles.headerTitle}>{t('dashboard.doctor.dashboardTitle')}</Text>
             </View>
             <View style={styles.headerButtons}>
               <TouchableOpacity style={styles.profileButton} onPress={() => router.push('/doctor-profile' as any)}>
@@ -555,12 +566,12 @@ export default function DoctorDashboardScreen() {
               <View style={styles.statCard}>
                 <Ionicons name="people" size={24} color="white" />
                 <Text style={styles.statNumber}>{dashboardStats.totalPatients}</Text>
-                <Text style={styles.statLabel}>Patients</Text>
+                <Text style={styles.statLabel}>{t('dashboard.doctor.stats.totalPatients')}</Text>
               </View>
               <View style={styles.statCard}>
                 <Ionicons name="alert-circle" size={24} color="white" />
                 <Text style={styles.statNumber}>{dashboardStats.medicationAlerts?.length || 0}</Text>
-                <Text style={styles.statLabel}>Alertes</Text>
+                <Text style={styles.statLabel}>{t('dashboard.doctor.stats.alerts')}</Text>
               </View>
             </View>
           )}
@@ -573,7 +584,7 @@ export default function DoctorDashboardScreen() {
           <Ionicons name="search" size={20} color="rgba(255, 255, 255, 0.6)" />
           <TextInput
             style={styles.searchInput}
-            placeholder="Rechercher un patient..."
+            placeholder={t('dashboard.doctor.searchPlaceholder')}
             placeholderTextColor="rgba(255, 255, 255, 0.6)"
             value={searchQuery}
             onChangeText={setSearchQuery}
