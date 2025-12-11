@@ -1,0 +1,33 @@
+# Screenshots Directory
+
+Place your application screenshots here with the following naming convention:
+
+## Required Screenshots:
+
+1. landing.png - Landing/Welcome page
+2. login.png - Login screen
+3. register.png - Registration screen
+4. forgot-password.png - Forgot password screen
+5. verify-code.png - SMS verification screen
+6. patient-dashboard.png - Patient main dashboard
+7. patient-medications.png - Patient medication list
+8. patient-profile.png - Patient profile screen
+9. confirm-medication.png - Medication confirmation modal
+10. doctor-dashboard.png - Doctor dashboard
+11. doctor-dashboard-full.png - Doctor dashboard with patient list
+12. tutor-dashboard.png - Tutor/Caregiver dashboard
+13. patient-profile-doctor.png - Patient profile (as seen by doctor)
+14. add-patient.png - Add patient form
+15. add-prescription.png - Add prescription form
+16. alerts.png - Medication alerts view
+17. alarm-activity.png - Full-screen alarm (from device)
+18. voice-recorder.png - Voice message recorder
+19. offline-mode.png - Offline mode indicator
+
+## Screenshot Guidelines:
+
+- Resolution: 1080x1920 (or device native)
+- Format: PNG preferred
+- Include device frame if possible
+- Capture in both light and dark themes if applicable
+
