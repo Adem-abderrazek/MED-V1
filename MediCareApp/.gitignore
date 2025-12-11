@@ -38,7 +38,15 @@ yarn-error.*
 
 # generated native folders
 /ios
-/android
+
+# Android build artifacts (but keep source files)
+android/app/build/
+android/build/
+android/.gradle/
+android/local.properties
+android/app/debug.keystore
+*.iml
+.idea/
 
 # Accidentally committed files
 UsersademaAppDataRoamingnpm/

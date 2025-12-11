@@ -1,0 +1,162 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:fillViewport="true"
+    android:background="@drawable/alarm_background_gradient">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:gravity="center"
+        android:padding="28dp"
+        android:paddingTop="40dp"
+        android:paddingBottom="32dp">
+
+        <!-- Header Label -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="💊 RAPPEL MÉDICAMENT"
+            android:textSize="14sp"
+            android:textColor="#10B981"
+            android:textStyle="bold"
+            android:letterSpacing="0.05"
+            android:layout_marginBottom="12dp"/>
+
+        <!-- Time Display with Better Styling -->
+        <TextView
+            android:id="@+id/timeText"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="00:00"
+            android:textSize="64sp"
+            android:textColor="#FFFFFF"
+            android:textStyle="bold"
+            android:fontFamily="sans-serif-light"
+            android:letterSpacing="0.1"
+            android:shadowColor="#000000"
+            android:shadowDx="0"
+            android:shadowDy="2"
+            android:shadowRadius="8"
+            android:layout_marginBottom="32dp"/>
+
+        <!-- Medication Info Card with Enhanced Design -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:background="@drawable/card_background_enhanced"
+            android:padding="28dp"
+            android:layout_marginBottom="32dp"
+            android:layout_marginStart="12dp"
+            android:layout_marginEnd="12dp"
+            android:elevation="12dp">
+
+            <TextView
+                android:id="@+id/medicationName"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Medication Name"
+                android:textSize="28sp"
+                android:textColor="#FFFFFF"
+                android:textStyle="bold"
+                android:gravity="center"
+                android:shadowColor="#000000"
+                android:shadowDx="0"
+                android:shadowDy="1"
+                android:shadowRadius="4"
+                android:layout_marginBottom="12dp"/>
+
+            <TextView
+                android:id="@+id/dosageText"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Dosage"
+                android:textSize="20sp"
+                android:textColor="#34D399"
+                android:textStyle="bold"
+                android:gravity="center"
+                android:layout_marginBottom="20dp"/>
+
+            <!-- Instructions Section with Better Styling -->
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:background="#4010B981"
+                android:layout_marginTop="4dp"
+                android:layout_marginBottom="20dp"/>
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="📋 Instructions"
+                android:textSize="14sp"
+                android:textColor="#10B981"
+                android:textStyle="bold"
+                android:letterSpacing="0.03"
+                android:gravity="center"
+                android:layout_marginBottom="12dp"/>
+
+            <TextView
+                android:id="@+id/instructionsText"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Prenez votre médicament selon les instructions de votre médecin"
+                android:textSize="16sp"
+                android:textColor="#FFFFFF"
+                android:alpha="0.95"
+                android:gravity="center"
+                android:lineSpacingExtra="6dp"
+                android:paddingStart="4dp"
+                android:paddingEnd="4dp"/>
+        </LinearLayout>
+
+        <!-- Action Buttons Container -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:paddingStart="16dp"
+            android:paddingEnd="16dp">
+
+            <!-- Confirm Button with Enhanced Styling -->
+            <Button
+                android:id="@+id/confirmButton"
+                android:layout_width="match_parent"
+                android:layout_height="68dp"
+                android:text="✓  J'ai pris"
+                android:textSize="18sp"
+                android:textColor="#FFFFFF"
+                android:textStyle="bold"
+                android:textAllCaps="false"
+                android:background="@drawable/button_confirm_rounded"
+                android:elevation="12dp"
+                android:stateListAnimator="@null"
+                android:layout_marginBottom="16dp"
+                android:paddingStart="24dp"
+                android:paddingEnd="24dp"/>
+
+            <!-- Snooze Button with Enhanced Styling -->
+            <Button
+                android:id="@+id/snoozeButton"
+                android:layout_width="match_parent"
+                android:layout_height="68dp"
+                android:text="⏰ Rappeler dans 5 min"
+                android:textSize="18sp"
+                android:textColor="#FFFFFF"
+                android:textStyle="bold"
+                android:textAllCaps="false"
+                android:background="@drawable/button_snooze_rounded"
+                android:elevation="12dp"
+                android:stateListAnimator="@null"
+                android:paddingStart="24dp"
+                android:paddingEnd="24dp"/>
+        </LinearLayout>
+
+    </LinearLayout>
+</ScrollView>
+
