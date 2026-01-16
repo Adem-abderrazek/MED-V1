@@ -1,0 +1,164 @@
+# CRITICAL: Exclude node_modules first with multiple patterns
+node_modules
+node_modules/
+node_modules/**
+**/node_modules
+**/node_modules/
+**/node_modules/**
+
+node_modules/
+**/node_modules/
+
+# Build artifacts
+android/app/build/**
+android/build/**
+android/.gradle/**
+android/**/build/**
+android/**/intermediates/**
+android/**/generated/**
+android/**/kotlin/**
+android/**/tmp/**
+android/**/outputs/**
+android/**/.cxx/**
+*.apk
+*.aab
+*.ipa
+
+# CMake cache
+android/app/.cxx/
+android/**/.cxx/
+
+# IDE and editor files
+.idea/
+.vscode/
+*.iml
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Logs and debug files
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.metro-health-check*
+
+# Backup and temporary files
+backup/
+*.backup
+*.tmp
+*.temp
+
+# Documentation (exclude all except README)
+docs/
+*.md
+!README.md
+CHANGELOG.md
+LICENSE.md
+*.mdx
+
+# Environment files
+.env.local
+.env*.local
+
+# TypeScript build info
+*.tsbuildinfo
+
+# Expo
+.expo/
+.expo-shared/
+dist/
+web-build/
+
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# Debug keystore (EAS uses its own)
+android/app/debug.keystore
+
+# Local properties
+android/local.properties
+
+# Kotlin cache
+.kotlin/
+
+# Package manager locks (will be regenerated)
+package-lock.json
+yarn.lock
+pnpm-lock.json
+
+# Test files
+**/__tests__/**
+**/*.test.*
+**/*.spec.*
+**/test/**
+**/tests/**
+**/*.test.ts
+**/*.test.tsx
+**/*.spec.ts
+**/*.spec.tsx
+
+# Example files
+**/examples/**
+**/example/**
+**/*.example.*
+
+# Source maps (not needed for build)
+*.map
+**/*.map
+
+# Coverage reports
+coverage/
+.nyc_output/
+*.lcov
+
+# Large media files (if any test/demo files)
+*.mp4
+*.mov
+*.avi
+*.mkv
+*.webm
+
+# Large audio files (voice messages are downloaded at runtime)
+*.mp3
+*.wav
+*.m4a
+*.aac
+*.ogg
+
+# Large image files (keep only what's in assets/)
+*.psd
+*.ai
+*.sketch
+
+# Storybook
+.storybook/
+storybook-static/
+
+# Jest
+jest.config.*
+**/__mocks__/**
+
+# ESLint cache
+.eslintcache
+
+# Prettier cache
+.prettiercache
+
+# Turbo
+.turbo/
+
+# Vercel
+.vercel/
+
+# Next.js (if any)
+.next/
+out/
+

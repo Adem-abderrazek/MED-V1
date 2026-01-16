@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<network-security-config>
+    <!-- Allow cleartext (HTTP) traffic for the API server -->
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="false">51.91.249.6</domain>
+    </domain-config>
+    <!-- Allow cleartext globally for development -->
+    <base-config cleartextTrafficPermitted="true">
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+</network-security-config>
+
+
+
+
+
+

@@ -1,0 +1,38 @@
+// Top-level build file where you can add configuration options common to all sub-projects/modules.
+
+buildscript {
+  repositories {
+    google()
+    mavenCentral()
+  }
+  dependencies {
+    classpath('com.android.tools.build:gradle')
+    classpath('com.facebook.react:react-native-gradle-plugin')
+    classpath('org.jetbrains.kotlin:kotlin-gradle-plugin')
+    classpath('com.google.gms:google-services:4.3.15')
+  }
+}
+
+allprojects {
+  repositories {
+    google()
+    mavenCentral()
+    maven { url 'https://www.jitpack.io' }
+    // Local Notifee repository - use this to avoid network/DNS issues
+    def notifeeDir = new File(rootProject.projectDir, "../node_modules/@notifee/react-native")
+    if (notifeeDir.exists()) {
+      maven {
+        url "${notifeeDir}/android/libs"
+      }
+    }
+    // Remote Notifee repository (commented out due to DNS/network issues)
+    // The local repository above should contain all needed Notifee artifacts
+    // If you need to use the remote repository, ensure network connectivity to maven.notifee.app
+    // maven {
+    //   url 'https://maven.notifee.app'
+    // }
+  }
+}
+
+apply plugin: "expo-root-project"
+apply plugin: "com.facebook.react.rootproject"
