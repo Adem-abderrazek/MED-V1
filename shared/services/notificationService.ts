@@ -112,6 +112,8 @@ export class NotificationService {
 
       console.log("✅ Notification permissions granted");
 
+      await this.setupIOSCategories();
+
       // Get push token with error handling for Firebase issues
       try {
         const projectId =
@@ -144,6 +146,34 @@ export class NotificationService {
     } catch (error) {
       console.error("❌ Error initializing notifications:", error);
       return null;
+    }
+  }
+
+  /**
+   * Set up iOS notification categories (action buttons)
+   */
+  private async setupIOSCategories(): Promise<void> {
+    if (Platform.OS !== "ios") return;
+    try {
+      await Notifications.setNotificationCategoryAsync("medication_reminder", [
+        {
+          identifier: "confirm",
+          buttonTitle: "Pris",
+          options: {
+            opensAppToForeground: true,
+          },
+        },
+        {
+          identifier: "snooze",
+          buttonTitle: "Repeter",
+          options: {
+            opensAppToForeground: true,
+          },
+        },
+      ]);
+      console.log("iOS notification categories configured");
+    } catch (error) {
+      console.error("Error setting up iOS notification categories:", error);
     }
   }
 
@@ -268,8 +298,15 @@ export class NotificationService {
           title: `💊 ${medicationName}`,
           body: `Il est temps de prendre: ${dosage}`,
           data: {
-            /* ... */
+            type: "medication_reminder",
+            reminderId,
+            medicationName,
+            dosage,
+            patientId: "",
+            reminderTime,
+            localVoicePath: voicePath || "",
           },
+          categoryIdentifier: "medication_reminder",
           sound: "default",
           priority: Notifications.AndroidNotificationPriority.MAX,
         },

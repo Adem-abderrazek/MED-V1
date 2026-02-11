@@ -49,7 +49,7 @@ export async function syncOfflineActions(
   token: string,
   actions: Array<{ id: string; type: 'confirm' | 'snooze'; reminderId: string; timestamp: string }>
 ) {
-  return request('/patient/reminders/sync-offline', {
+  return request('/notifications/sync-offline-actions', {
     method: 'POST',
     headers: { 'Authorization': `Bearer ${token}` },
     body: JSON.stringify({ actions }),

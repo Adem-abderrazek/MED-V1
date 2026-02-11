@@ -1,6 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from 'expo-router';
+import { networkMonitor } from '../services/networkMonitor';
+import { offlineQueueService } from '../services/offlineQueueService';
+import localReminderService from '../services/localReminderService';
 
 /**
  * Custom hook for managing authentication token
@@ -36,6 +39,37 @@ export function useAuthToken(): { token: string | null; isLoading: boolean } {
       loadToken();
     }, [loadToken])
   );
+
+  useEffect(() => {
+    const syncWhenTokenAvailable = async () => {
+      if (!token) return;
+
+      try {
+        const online = await networkMonitor.isOnline();
+        if (online) {
+          await offlineQueueService.syncQueue(token);
+        }
+
+        const userData = await AsyncStorage.getItem('userData');
+        const user = userData ? JSON.parse(userData) : null;
+        const isPatient = user?.userType === 'patient';
+
+        if (online && isPatient) {
+          try {
+            console.log('Starting reminder reconcile (token-load)');
+            await localReminderService.reconcileReminders(token);
+          } catch (error) {
+            console.error('Error reconciling reminders after token load:', error);
+          }
+        }
+
+      } catch (error) {
+        console.error('Error syncing after token load:', error);
+      }
+    };
+
+    syncWhenTokenAvailable();
+  }, [token]);
 
   return { token, isLoading };
 }

@@ -24,6 +24,34 @@
     "french": "French",
     "arabic": "Arabic"
   },
+  "permissions": {
+    "title": "Permissions required",
+    "subtitle": "To make sure alarms work reliably, please grant the permissions below.",
+    "notifications": {
+      "title": "Notifications",
+      "description": "Shows medication reminders even when the app is closed."
+    },
+    "exactAlarms": {
+      "title": "Exact alarms",
+      "description": "Ensures alarms fire at the exact scheduled time."
+    },
+    "overlays": {
+      "title": "Display over other apps",
+      "description": "Shows the full-screen alarm even if another app is open."
+    },
+    "battery": {
+      "title": "Battery optimization",
+      "description": "Prevents the system from stopping alarms in the background."
+    },
+    "statusGranted": "Granted",
+    "statusRequired": "Required",
+    "actionEnable": "Enable",
+    "actionOpenSettings": "Open settings",
+    "continue": "Continue",
+    "checking": "Checking permissions...",
+    "allSet": "All permissions granted",
+    "footerNote": "You must grant all permissions to continue."
+  },
   "landing": {
     "appName": "MediCare+",
     "slogan": "Your health, our priority",

@@ -6,6 +6,8 @@ import { MedicationOption } from '../../../shared/constants/medications';
 import { uploadVoiceFile, createVoice, getVoiceMessages } from '../services/prescriptionService';
 import { createPrescription, updatePrescription } from '../../../shared/services/api/caregiver';
 
+const MAX_VOICE_DURATION_SECONDS = 30;
+
 interface UsePrescriptionFormProps {
   patientId: string;
   token: string;
@@ -92,6 +94,18 @@ export function usePrescriptionForm({
   const handleSaveVoiceMessage = async (audioUri: string, duration: number, title?: string) => {
     try {
       setIsUploadingVoice(true);
+
+      const normalizedDuration = Number(duration);
+      if (
+        !Number.isFinite(normalizedDuration) ||
+        normalizedDuration <= 0 ||
+        normalizedDuration > MAX_VOICE_DURATION_SECONDS
+      ) {
+        return {
+          success: false,
+          message: `Le message vocal doit durer entre 1 et ${MAX_VOICE_DURATION_SECONDS} secondes`,
+        };
+      }
       
       const base64Audio = await FileSystem.readAsStringAsync(audioUri, {
         encoding: FileSystem.EncodingType.Base64,
@@ -112,7 +126,7 @@ export function usePrescriptionForm({
         fileUrl: uploadResult.data.fileUrl,
         fileName: `voice_${Date.now()}.m4a`,
         title: title,
-        durationSeconds: duration,
+        durationSeconds: normalizedDuration,
       });
 
       if (createResult.success && createResult.data) {
@@ -237,4 +251,3 @@ export function usePrescriptionForm({
     handleAddCustomMedication,
   };
 }
-

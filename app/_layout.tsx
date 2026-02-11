@@ -1,7 +1,7 @@
-import { Stack, useRouter } from 'expo-router';
+import { Stack, usePathname, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { AppState, AppStateStatus, Linking, Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { alarmService } from '../shared/services/alarmService';
@@ -10,6 +10,8 @@ import { networkMonitor } from '../shared/services/networkMonitor';
 import localReminderService from '../shared/services/localReminderService';
 import notifeeAlarmService from '../shared/services/notifeeAlarmService';
 import * as apiService from '../shared/services/api/patient';
+import { offlineQueueService } from '../shared/services/offlineQueueService';
+import { getNotificationPermissionStatus, getPermissionStatus } from '../shared/services/permissionService';
 import '../i18n';
 
 // Safely import notifee - it may not be available in Expo Go
@@ -36,11 +38,7 @@ try {
         if (pressAction.id === 'confirm') {
           console.log('✅ Background confirm action');
           try {
-            await localReminderService.confirmReminderLocally(reminderId);
-            const token = await AsyncStorage.getItem('userToken');
-            if (token) {
-              await apiService.confirmMedicationTaken(token, [reminderId]);
-            }
+            await confirmReminderAndSync(reminderId);
             if (notifee?.cancelNotification) {
               await notifee.cancelNotification(notification.id!);
             }
@@ -65,8 +63,84 @@ try {
   console.warn('⚠️ Notifee not available (expected in Expo Go):', error);
 }
 
+const MEDS_CACHE_PREFIX = '@patient_medications_by_date:';
+const STATS_CACHE_PREFIX = '@patient_medication_stats_by_date:';
+
+const updateCachedMedicationStatus = async (reminderIds: string[]) => {
+  try {
+    const reminderSet = new Set(reminderIds);
+    const keys = await AsyncStorage.getAllKeys();
+    const medsKeys = keys.filter(key => key.startsWith(MEDS_CACHE_PREFIX));
+
+    for (const medsKey of medsKeys) {
+      const medsJson = await AsyncStorage.getItem(medsKey);
+      if (!medsJson) continue;
+
+      const meds = JSON.parse(medsJson) as Array<{ reminderId: string; status: string }>;
+      let updated = false;
+      const updatedMeds = meds.map(med => {
+        if (reminderSet.has(med.reminderId) && med.status !== 'taken') {
+          updated = true;
+          return { ...med, status: 'taken' };
+        }
+        return med;
+      });
+
+      if (!updated) continue;
+
+      await AsyncStorage.setItem(medsKey, JSON.stringify(updatedMeds));
+
+      const dateKey = medsKey.replace(MEDS_CACHE_PREFIX, '');
+      const total = updatedMeds.length;
+      const taken = updatedMeds.filter(med => med.status === 'taken').length;
+      const adherenceRate = total > 0 ? Math.round((taken / total) * 100) : 0;
+      const statsKey = `${STATS_CACHE_PREFIX}${dateKey}`;
+      await AsyncStorage.setItem(
+        statsKey,
+        JSON.stringify({ totalMedicationsToday: total, takenToday: taken, adherenceRate })
+      );
+    }
+  } catch (error) {
+    console.error('Error updating cached medication status:', error);
+  }
+};
+
+const confirmReminderAndSync = async (reminderId: string) => {
+  try {
+    await localReminderService.confirmReminderLocally(reminderId);
+    await updateCachedMedicationStatus([reminderId]);
+    await AsyncStorage.setItem('@patient_dashboard_refresh', new Date().toISOString());
+
+    const token = await AsyncStorage.getItem('userToken');
+    if (!token) {
+      return;
+    }
+
+    const online = await networkMonitor.isOnline();
+    if (online) {
+      try {
+        await apiService.confirmMedicationTaken(token, [reminderId]);
+      } catch (error) {
+        console.error('Error confirming medication with backend:', error);
+        await offlineQueueService.addAction('confirm', reminderId);
+      }
+    } else {
+      await offlineQueueService.addAction('confirm', reminderId);
+    }
+  } catch (error) {
+    console.error('Error confirming reminder:', error);
+  }
+};
+
 export default function RootLayout() {
   const router = useRouter();
+  const pathname = usePathname();
+  const pathnameRef = useRef(pathname);
+  const permissionRouteInFlight = useRef(false);
+
+  useEffect(() => {
+    pathnameRef.current = pathname;
+  }, [pathname]);
 
   useEffect(() => {
     console.log('🚀 Initializing notification and network systems...');
@@ -102,8 +176,113 @@ export default function RootLayout() {
 
     initNotifications();
 
-    // Request alarm-related permissions on Android
-    if (Platform.OS === 'android') {
+    let isProcessingPendingConfirmations = false;
+
+    const processNativePendingConfirmations = async () => {
+      if (Platform.OS !== 'android') {
+        return;
+      }
+
+      if (isProcessingPendingConfirmations) {
+        console.log('Pending confirmations already processing, skipping');
+        return;
+      }
+
+      isProcessingPendingConfirmations = true;
+
+      try {
+        const pending = await alarmService.getPendingConfirmations();
+        if (!pending.length) {
+          return;
+        }
+
+        const reminderIds = Array.from(new Set(pending.map(item => item.reminderId).filter(Boolean)));
+        if (!reminderIds.length) {
+          return;
+        }
+        for (const reminderId of reminderIds) {
+          await confirmReminderAndSync(reminderId);
+        }
+
+        await alarmService.clearPendingConfirmations();
+        await AsyncStorage.setItem('@patient_dashboard_refresh', new Date().toISOString());
+      } catch (error) {
+        console.error('Error processing native pending confirmations:', error);
+      } finally {
+        isProcessingPendingConfirmations = false;
+      }
+    };
+
+    const resolveHomeRoute = (userType?: string | null) => {
+      if (userType === 'medecin' || userType === 'tuteur') {
+        return '/(doctor)/dashboard';
+      }
+      return '/(patient)/dashboard';
+    };
+
+    const maybeEnforcePermissions = async (source: string) => {
+      if (permissionRouteInFlight.current) {
+        return;
+      }
+
+      try {
+        const token = await AsyncStorage.getItem('userToken');
+        if (!token) {
+          return;
+        }
+
+        const userData = await AsyncStorage.getItem('userData');
+        const user = userData ? JSON.parse(userData) : null;
+        if (user?.userType !== 'patient') {
+          return;
+        }
+
+        const permissionStatus = await getPermissionStatus();
+        const isOnboarding = pathnameRef.current?.includes('permissions-onboarding');
+
+        if (!permissionStatus.allGranted && !isOnboarding) {
+          permissionRouteInFlight.current = true;
+          router.replace('/(shared)/permissions-onboarding' as any);
+          setTimeout(() => {
+            permissionRouteInFlight.current = false;
+          }, 500);
+          return;
+        }
+
+        if (permissionStatus.allGranted && isOnboarding) {
+          permissionRouteInFlight.current = true;
+          router.replace(resolveHomeRoute(user?.userType) as any);
+          setTimeout(() => {
+            permissionRouteInFlight.current = false;
+          }, 500);
+        }
+      } catch (error) {
+        console.error(`Error enforcing permissions (${source}):`, error);
+      }
+    };
+
+    const maybeReconcileReminders = async (source: string) => {
+      try {
+        const token = await AsyncStorage.getItem('userToken');
+        if (!token) {
+          return;
+        }
+
+        const userData = await AsyncStorage.getItem('userData');
+        const user = userData ? JSON.parse(userData) : null;
+        if (user?.userType !== 'patient') {
+          return;
+        }
+
+        console.log(`Starting reminder reconcile (${source})`);
+        await localReminderService.reconcileReminders(token);
+      } catch (error) {
+        console.error(`Error reconciling reminders (${source}):`, error);
+      }
+    };
+
+    // Permissions are handled by the onboarding flow.
+    if (false) {
       alarmService.ensureAlarmPermissions().catch(err => {
         console.error('❌ Error requesting alarm permissions:', err);
       });
@@ -116,39 +295,17 @@ export default function RootLayout() {
       if (!notification?.data?.reminderId) return;
 
       const reminderId = notification.data.reminderId as string;
-      const medicationName = notification.data.medicationName as string;
-      const dosage = notification.data.dosage as string;
 
       console.log('🔔 Notifee event:', EventType?.[type], pressAction?.id);
 
-      // Handle full-screen action - navigate to alarm screen
-      if (EventType && (type === EventType.DELIVERED || type === EventType.PRESS)) {
-        if (notification.data.type === 'medication_alarm') {
-          console.log('💊 Navigating to medication alarm screen');
-          router.push({
-            pathname: '/(patient)/medication-alarm' as any,
-            params: {
-              medicationName,
-              dosage,
-              instructions: notification.data.instructions || '',
-              reminderId,
-              patientId: notification.data.patientId || '',
-              audioPath: notification.data.audioPath || '',
-            }
-          });
-        }
-      }
+      // Native XML alarm handles full-screen UI; no RN alarm navigation.
 
       // Handle action button presses
       if (EventType && type === EventType.ACTION_PRESS && pressAction) {
         if (pressAction.id === 'confirm') {
           console.log('✅ Confirm action pressed');
           try {
-            await localReminderService.confirmReminderLocally(reminderId);
-            const token = await AsyncStorage.getItem('userToken');
-            if (token) {
-              await apiService.confirmMedicationTaken(token, [reminderId]);
-            }
+            await confirmReminderAndSync(reminderId);
             if (notifee?.cancelNotification) {
               await notifee.cancelNotification(notification.id);
             }
@@ -186,19 +343,7 @@ export default function RootLayout() {
 
         const medicationData = notificationService.parseMedicationNotification(notification);
         if (medicationData) {
-          console.log('💊 Medication reminder detected, navigating to alarm screen:', medicationData);
-
-          // Navigate to medication alarm screen with medication data
-          router.push({
-            pathname: '/(patient)/medication-alarm' as any,
-            params: {
-              medicationName: medicationData.medicationName,
-              dosage: medicationData.dosage,
-              instructions: medicationData.instructions || '',
-              reminderId: medicationData.reminderId,
-              patientId: medicationData.patientId || '',
-            }
-          });
+          console.log("?Y'S Medication reminder detected (native alarm handles UI):", medicationData);
         }
       }
     );
@@ -212,10 +357,21 @@ export default function RootLayout() {
         notificationService.handleBackgroundNotificationCheck().catch(err => {
           console.error('❌ Error in background notification check:', err);
         });
+        processNativePendingConfirmations();
+        maybeEnforcePermissions('app-active');
+        maybeReconcileReminders('app-active');
       }
     };
 
     const appStateSubscription = AppState.addEventListener('change', handleAppStateChange);
+
+    const handleNetworkChange = (online: boolean) => {
+      if (online) {
+        maybeReconcileReminders('network-online');
+      }
+    };
+
+    networkMonitor.addListener(handleNetworkChange);
 
     // Handle notification tapped (user clicked on notification or action button)
     const notificationResponseListener = notificationService.addNotificationResponseReceivedListener(
@@ -235,12 +391,7 @@ export default function RootLayout() {
         if (actionIdentifier === 'confirm') {
           console.log('✅ Quick confirm action from lock screen');
           try {
-            const isOnline = await networkMonitor.isOnline();
-            if (isOnline) {
-              await localReminderService.confirmReminderLocally(reminderId);
-            } else {
-              await localReminderService.confirmReminderLocally(reminderId);
-            }
+            await confirmReminderAndSync(reminderId);
             console.log('✅ Reminder confirmed from lock screen');
           } catch (error) {
             console.error('❌ Error confirming from lock screen:', error);
@@ -257,21 +408,48 @@ export default function RootLayout() {
           return;
         }
 
-        // User tapped on the notification body - navigate to alarm screen
+        // User tapped on the notification body - open dashboard
         const medicationData = notificationService.parseMedicationNotification(notification);
         if (medicationData) {
-          console.log('ℹ️ Notification tapped by user, navigating to alarm screen:', medicationData);
+          console.log('Notification tapped by user, opening dashboard:', medicationData);
+        }
 
-          router.push({
-            pathname: '/(patient)/medication-alarm' as any,
+        if (medicationData && Platform.OS === 'ios') {
+          try {
+            await localReminderService.cancelPendingNotifications(reminderId);
+          } catch (error) {
+            console.warn('Error cancelling pending iOS notifications:', error);
+          }
+
+          const audioPath = medicationData.voicePath ? encodeURIComponent(medicationData.voicePath) : '';
+          const nameParam = medicationData.medicationName
+            ? encodeURIComponent(medicationData.medicationName)
+            : '';
+          const dosageParam = medicationData.dosage ? encodeURIComponent(medicationData.dosage) : '';
+
+          router.replace({
+            pathname: '/(patient)/alarm',
             params: {
-              medicationName: medicationData.medicationName,
-              dosage: medicationData.dosage,
-              instructions: medicationData.instructions || '',
-              reminderId: medicationData.reminderId,
-              patientId: medicationData.patientId || '',
-            }
-          });
+              reminderId,
+              audioPath,
+              medicationName: nameParam,
+              dosage: dosageParam,
+            },
+          } as any);
+          return;
+        }
+
+        try {
+          const userData = await AsyncStorage.getItem('userData');
+          const user = userData ? JSON.parse(userData) : null;
+          await AsyncStorage.setItem('@patient_dashboard_refresh', new Date().toISOString());
+          if (user?.userType === 'patient') {
+            router.replace('/(patient)/dashboard' as any);
+          } else if (user?.userType === 'medecin' || user?.userType === 'tuteur') {
+            router.replace('/(doctor)/dashboard' as any);
+          }
+        } catch (error) {
+          console.error('Error opening dashboard from notification:', error);
         }
       }
     );
@@ -286,12 +464,7 @@ export default function RootLayout() {
 
       if (action === 'confirm' && reminderId) {
         try {
-          const isOnline = await networkMonitor.isOnline();
-          if (isOnline) {
-            await localReminderService.confirmReminderLocally(reminderId);
-          } else {
-            await localReminderService.confirmReminderLocally(reminderId);
-          }
+          await confirmReminderAndSync(reminderId);
           console.log('✅ Reminder confirmed from native alarm');
         } catch (error) {
           console.error('❌ Error confirming from native alarm:', error);
@@ -307,11 +480,16 @@ export default function RootLayout() {
       }
     });
 
+    processNativePendingConfirmations();
+    maybeEnforcePermissions('startup');
+    maybeReconcileReminders('startup');
+
     return () => {
       console.log('🧹 Cleaning up notification listeners');
       notificationReceivedListener.remove();
       notificationResponseListener.remove();
       appStateSubscription.remove();
+      networkMonitor.removeListener(handleNetworkChange);
       linkingSubscription.remove();
       if (notifeeUnsubscribe) {
         notifeeUnsubscribe();
@@ -319,6 +497,51 @@ export default function RootLayout() {
       notificationService.cleanup();
     };
   }, [router]);
+
+  useEffect(() => {
+    const enforcePermissionsOnRouteChange = async () => {
+      if (permissionRouteInFlight.current) {
+        return;
+      }
+
+      try {
+        const token = await AsyncStorage.getItem('userToken');
+        if (!token) {
+          return;
+        }
+
+        const userData = await AsyncStorage.getItem('userData');
+        const user = userData ? JSON.parse(userData) : null;
+        if (user?.userType !== 'patient') {
+          return;
+        }
+
+        const permissionStatus = await getPermissionStatus();
+        const isOnboarding = pathname.includes('permissions-onboarding');
+
+        if (!permissionStatus.allGranted && !isOnboarding) {
+          permissionRouteInFlight.current = true;
+          router.replace('/(shared)/permissions-onboarding' as any);
+          setTimeout(() => {
+            permissionRouteInFlight.current = false;
+          }, 500);
+          return;
+        }
+
+        if (permissionStatus.allGranted && isOnboarding) {
+          permissionRouteInFlight.current = true;
+          router.replace('/(patient)/dashboard' as any);
+          setTimeout(() => {
+            permissionRouteInFlight.current = false;
+          }, 500);
+        }
+      } catch (error) {
+        console.error('Error enforcing permissions on route change:', error);
+      }
+    };
+
+    enforcePermissionsOnRouteChange();
+  }, [pathname, router]);
 
   return (
     <SafeAreaProvider>
@@ -333,19 +556,12 @@ export default function RootLayout() {
         <Stack.Screen name="(doctor)/profile" options={{ headerShown: false }} />
         <Stack.Screen name="(doctor)/edit-profile" options={{ headerShown: false }} />
         <Stack.Screen name="(patient)/dashboard" options={{ headerShown: false }} />
+        <Stack.Screen name="(patient)/alarm" options={{ headerShown: false }} />
         <Stack.Screen name="(patient)/profile" options={{ headerShown: false }} />
         <Stack.Screen name="(patient)/profile-settings" options={{ headerShown: false }} />
         <Stack.Screen name="(patient)/edit-profile" options={{ headerShown: false }} />
         <Stack.Screen name="(patient)/adherence-history" options={{ headerShown: false }} />
-        {/* Alarm Screen - Full screen, no gestures */}
-        <Stack.Screen
-          name="(patient)/medication-alarm"
-          options={{
-            headerShown: false,
-            gestureEnabled: false,
-            animation: 'fade',
-          }}
-        />
+        <Stack.Screen name="(shared)/permissions-onboarding" options={{ headerShown: false }} />
         <Stack.Screen name="(shared)/add-patient" options={{ headerShown: false }} />
         <Stack.Screen name="(shared)/terms" options={{ headerShown: false }} />
         <Stack.Screen name="(shared)/privacy-policy" options={{ headerShown: false }} />
@@ -354,4 +570,3 @@ export default function RootLayout() {
     </SafeAreaProvider>
   );
 }
-

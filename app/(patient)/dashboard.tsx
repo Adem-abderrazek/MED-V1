@@ -1,5 +1,5 @@
 import React, { useEffect, useCallback } from 'react';
-import { FlatList, RefreshControl, StyleSheet } from 'react-native';
+import { FlatList, RefreshControl, StyleSheet, Text, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from 'expo-router';
@@ -52,10 +52,14 @@ export default function PatientDashboardScreen() {
         // Only check for updates when viewing today (not when browsing dates)
         const isToday = selectedDate.toDateString() === new Date().toDateString();
         if (isToday) {
-          checkForUpdates();
+          checkForUpdates().then(hasActualUpdates => {
+            if (hasActualUpdates) {
+              syncReminders(true);
+            }
+          });
         }
       }
-    }, [selectedDate, isTokenLoading, loadMedicationsForDate, loadLastSyncTime, checkForUpdates])
+    }, [selectedDate, isTokenLoading, loadMedicationsForDate, loadLastSyncTime, checkForUpdates, syncReminders])
   );
 
   useEffect(() => {

@@ -105,6 +105,9 @@ export class iOSAlarmService {
     dosage: string;
     instructions?: string;
     scheduledTime: Date;
+    patientId?: string;
+    voicePath?: string | null;
+    reminderTime?: string;
     soundName?: string;
     volume?: number; // 0.0 to 1.0, only for Critical Alerts
   }): Promise<string | null> {
@@ -119,6 +122,9 @@ export class iOSAlarmService {
       dosage,
       instructions,
       scheduledTime,
+      patientId,
+      voicePath,
+      reminderTime,
       soundName,
       volume = 1.0,
     } = params;
@@ -141,6 +147,9 @@ export class iOSAlarmService {
         medicationName,
         dosage,
         instructions,
+        patientId: patientId || "",
+        reminderTime: reminderTime || scheduledTime.toISOString(),
+        localVoicePath: voicePath || "",
         scheduledTime: scheduledTime.toISOString(),
       },
       categoryIdentifier: "medication_reminder",
@@ -231,4 +240,3 @@ export class iOSAlarmService {
 }
 
 export default iOSAlarmService;
-

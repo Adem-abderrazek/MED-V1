@@ -9,8 +9,21 @@ export async function login(credentials: LoginCredentials) {
     const Notifications = await import('expo-notifications');
     const Device = await import('expo-device');
 
-    if ((Device as any).default?.isDevice) {
-      const { status } = await (Notifications as any).requestPermissionsAsync();
+    const isDevice =
+      (Device as any)?.isDevice ??
+      (Device as any)?.default?.isDevice ??
+      false;
+
+    if (!isDevice) {
+      console.log('WARN Skipping push token (not a physical device)');
+    } else {
+      const existingPermissions = await (Notifications as any).getPermissionsAsync();
+      let status = existingPermissions?.status;
+      if (status !== 'granted') {
+        const requested = await (Notifications as any).requestPermissionsAsync();
+        status = requested?.status;
+      }
+
       if (status === 'granted') {
         try {
           const projectId =
@@ -20,14 +33,16 @@ export async function login(credentials: LoginCredentials) {
             projectId,
           });
           pushToken = expoToken.data;
-          console.log('✅ Real push token generated for login:', pushToken?.substring(0, 40) + '...');
+          console.log('OK Real push token generated for login:', pushToken?.substring(0, 40) + '...');
         } catch (tokenError) {
-          console.log('⚠️ Failed to get push token:', tokenError);
+          console.log('WARN Failed to get push token:', tokenError);
         }
+      } else {
+        console.log('WARN Push permission not granted');
       }
     }
   } catch (error) {
-    console.log('⚠️ Push token generation failed:', error);
+    console.log('WARN Push token generation failed:', error);
   }
 
   const loginData: any = { 
@@ -83,6 +98,13 @@ export async function registerPushToken(token: string, pushToken: string) {
     method: 'POST',
     headers: { 'Authorization': `Bearer ${token}` },
     body: JSON.stringify({ pushToken }),
+  });
+}
+
+export async function unregisterPushToken(token: string) {
+  return request('/notifications/unregister-token', {
+    method: 'POST',
+    headers: { 'Authorization': `Bearer ${token}` },
   });
 }
 

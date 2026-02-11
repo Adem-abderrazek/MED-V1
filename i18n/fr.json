@@ -24,6 +24,34 @@
     "french": "Français",
     "arabic": "Arabe"
   },
+  "permissions": {
+    "title": "Autorisations requises",
+    "subtitle": "Pour que les alarmes fonctionnent correctement, veuillez accorder les autorisations ci-dessous.",
+    "notifications": {
+      "title": "Notifications",
+      "description": "Affiche les rappels même lorsque l'application est fermée."
+    },
+    "exactAlarms": {
+      "title": "Alarmes exactes",
+      "description": "Garantit des alarmes à l'heure exacte."
+    },
+    "overlays": {
+      "title": "Afficher par-dessus les autres applis",
+      "description": "Affiche l'alarme plein écran même si une autre appli est ouverte."
+    },
+    "battery": {
+      "title": "Optimisation de la batterie",
+      "description": "Empêche le système de bloquer les alarmes en arrière-plan."
+    },
+    "statusGranted": "Accordée",
+    "statusRequired": "Requise",
+    "actionEnable": "Activer",
+    "actionOpenSettings": "Ouvrir les paramètres",
+    "continue": "Continuer",
+    "checking": "Vérification des autorisations...",
+    "allSet": "Toutes les autorisations sont accordées",
+    "footerNote": "Vous devez tout accorder pour continuer."
+  },
   "landing": {
     "appName": "MediCare+",
     "slogan": "Votre santé, notre priorité",

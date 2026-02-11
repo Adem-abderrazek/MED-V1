@@ -10,6 +10,8 @@ import { getUserProfile, updateUserProfile } from '../../shared/services/api/com
 import { useModal } from '../../shared/hooks/useModal';
 import CustomModal from '../../shared/components/ui/Modal';
 import { getThemeColors } from '../../config/theme';
+import { networkMonitor } from '../../shared/services/networkMonitor';
+import { loadCachedProfile, saveCachedProfile } from '../../shared/utils/profileCache';
 
 interface ProfileFormData {
   firstName: string;
@@ -23,6 +25,7 @@ export default function PatientEditProfileScreen() {
   const { t } = useTranslation();
   const { visible, modalData, showModal, hideModal } = useModal();
   const [token, setToken] = useState<string | null>(null);
+  const [userId, setUserId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [formData, setFormData] = useState<ProfileFormData>({
@@ -34,11 +37,36 @@ export default function PatientEditProfileScreen() {
 
   useEffect(() => {
     const loadProfile = async () => {
+      let resolvedUserId: string | null = null;
       const storedToken = await AsyncStorage.getItem('userToken');
       setToken(storedToken);
+      const storedUser = await AsyncStorage.getItem('userData');
+      if (storedUser) {
+        try {
+          const parsed = JSON.parse(storedUser);
+          resolvedUserId = parsed?.id || null;
+          setUserId(resolvedUserId);
+        } catch {
+          setUserId(null);
+        }
+      }
 
       if (storedToken) {
         try {
+          const online = await networkMonitor.isOnline();
+          if (!online) {
+            const cached = await loadCachedProfile<any>(resolvedUserId);
+            if (cached) {
+              setFormData({
+                firstName: cached.firstName || '',
+                lastName: cached.lastName || '',
+                email: cached.email || '',
+                phoneNumber: cached.phoneNumber || cached.phone || '',
+              });
+            }
+            return;
+          }
+
           const result = await getUserProfile(storedToken);
           if (result.success && result.data) {
             const data = result.data as any;
@@ -48,10 +76,31 @@ export default function PatientEditProfileScreen() {
               email: data.email || '',
               phoneNumber: data.phoneNumber || '',
             });
+            await saveCachedProfile(data, resolvedUserId);
+          } else {
+            const cached = await loadCachedProfile<any>(resolvedUserId);
+            if (cached) {
+              setFormData({
+                firstName: cached.firstName || '',
+                lastName: cached.lastName || '',
+                email: cached.email || '',
+                phoneNumber: cached.phoneNumber || cached.phone || '',
+              });
+            }
           }
         } catch (error) {
           console.error('Error loading profile:', error);
-          showModal('error', t('common.error'), t('common.errorMessage'));
+          const cached = await loadCachedProfile<any>(resolvedUserId);
+          if (cached) {
+            setFormData({
+              firstName: cached.firstName || '',
+              lastName: cached.lastName || '',
+              email: cached.email || '',
+              phoneNumber: cached.phoneNumber || cached.phone || '',
+            });
+          } else {
+            showModal('error', t('common.error'), t('common.errorMessage'));
+          }
         } finally {
           setIsLoading(false);
         }
@@ -84,6 +133,16 @@ export default function PatientEditProfileScreen() {
       });
 
       if (result.success) {
+        const cached = await loadCachedProfile<any>(userId);
+        const updatedProfile = {
+          ...(cached || {}),
+          firstName: formData.firstName,
+          lastName: formData.lastName,
+          email: formData.email,
+          phoneNumber: formData.phoneNumber,
+          phone: formData.phoneNumber,
+        };
+        await saveCachedProfile(updatedProfile, userId);
         showModal('success', t('common.success'), t('profile.editProfile') + ' ' + t('common.success'));
         setTimeout(() => {
           hideModal();

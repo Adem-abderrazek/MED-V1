@@ -52,16 +52,43 @@ class MedicationAlarmModule(reactContext: ReactApplicationContext) : ReactContex
                 putExtra(AlarmActivity.EXTRA_PATIENT_ID, patientId)
                 putExtra(AlarmActivity.EXTRA_AUDIO_PATH, audioPath)
             }
-            val pendingIntent = PendingIntent.getBroadcast(context, reminderId.hashCode(), intent,
-                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
+            val pendingIntent = PendingIntent.getBroadcast(
+                context,
+                reminderId.hashCode(),
+                intent,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            )
             val triggerTime = triggerTimeMs.toLong()
             Log.d(TAG, "Scheduling alarm for $medicationName at ${java.util.Date(triggerTime)} (audioPath: ${audioPath ?: "null"})")
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && !alarmManager.canScheduleExactAlarms()) {
                 promise.reject("PERMISSION_DENIED", "Exact alarm permission not granted")
                 return
             }
-            // Use setExactAndAllowWhileIdle to ensure alarm fires automatically and opens AlarmActivity
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            // Use AlarmClock on modern Android for reliability and full-screen behavior
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                val showIntent = PendingIntent.getActivity(
+                    context,
+                    reminderId.hashCode(),
+                    Intent(context, AlarmActivity::class.java).apply {
+                        flags = Intent.FLAG_ACTIVITY_NEW_TASK or
+                                Intent.FLAG_ACTIVITY_CLEAR_TOP or
+                                Intent.FLAG_ACTIVITY_EXCLUDE_FROM_RECENTS or
+                                Intent.FLAG_ACTIVITY_SINGLE_TOP or
+                                Intent.FLAG_ACTIVITY_NO_HISTORY
+                        putExtra(AlarmActivity.EXTRA_REMINDER_ID, reminderId)
+                        putExtra(AlarmActivity.EXTRA_MEDICATION_NAME, medicationName)
+                        putExtra(AlarmActivity.EXTRA_DOSAGE, dosage)
+                        putExtra(AlarmActivity.EXTRA_INSTRUCTIONS, instructions)
+                        putExtra(AlarmActivity.EXTRA_PATIENT_ID, patientId)
+                        putExtra(AlarmActivity.EXTRA_AUDIO_PATH, audioPath)
+                    },
+                    PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+                )
+                alarmManager.setAlarmClock(
+                    AlarmManager.AlarmClockInfo(triggerTime, showIntent),
+                    pendingIntent
+                )
+            } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
                 alarmManager.setExactAndAllowWhileIdle(
                     AlarmManager.RTC_WAKEUP,
                     triggerTime,

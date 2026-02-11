@@ -23,6 +23,7 @@ const apiService = {
   verifyResetCode: auth.verifyResetCode,
   resetPassword: auth.resetPassword,
   registerPushToken: auth.registerPushToken,
+  unregisterPushToken: auth.unregisterPushToken,
 
   // Caregiver/Doctor functions
   getDoctorPatients: caregiver.getDoctorPatients,

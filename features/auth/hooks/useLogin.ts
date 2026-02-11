@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { login } from '../../../shared/services/api/auth';
+import { login, registerPushToken } from '../../../shared/services/api/auth';
 import { extractErrorMessage } from '../../../shared/utils/errorHandling';
 import { LoginCredentials } from '../../../shared/types/auth.types';
+import { notificationService } from '../../../shared/services/notificationService';
+import { getNotificationPermissionStatus } from '../../../shared/services/permissionService';
 
 const STORAGE_KEYS = {
   REMEMBER_ME: '@medicare_remember_me',
@@ -109,6 +111,27 @@ export function useLogin() {
         await AsyncStorage.setItem('userToken', token);
         if (user) {
           await AsyncStorage.setItem('userData', JSON.stringify(user));
+        }
+
+        try {
+          const hasNotificationPermission = await getNotificationPermissionStatus();
+          if (!hasNotificationPermission) {
+            console.log('Skipping push token registration until notification permission is granted');
+            onSuccess(user?.userType || '', user);
+            return;
+          }
+
+          let pushToken = notificationService.getPushToken();
+          if (!pushToken) {
+            pushToken = await notificationService.initialize();
+          }
+          if (pushToken) {
+            await registerPushToken(token, pushToken);
+          } else {
+            console.log('WARN No push token available after login');
+          }
+        } catch (tokenError) {
+          console.error('Error registering push token after login:', tokenError);
         }
         
         onSuccess(user?.userType || '', user);

@@ -85,6 +85,8 @@ const MEDICATIONS = [
   { id: '6', name: 'Atorvastatine', genericName: 'Atorvastatine', dosage: '20mg', form: 'Comprimé', description: 'Cholestérol' },
 ];
 
+const MAX_VOICE_DURATION_SECONDS = 30;
+
 const WEEK_DAYS = [
   { short: 'L', full: 'Lundi' },
   { short: 'M', full: 'Mardi' },
@@ -188,7 +190,8 @@ export default function AddPrescriptionModal({
       setRepeatWeeks(String(existingPrescription.repeatWeeks || 1));
       
       // ✅ FIX: Load voice message ID from existing prescription
-      const voiceMessageId = (existingPrescription as any).voiceMessageId;
+      const voiceMessageId = (existingPrescription as any).voiceMessageId
+        || (existingPrescription as any).voiceMessage?.id;
       if (voiceMessageId) {
         console.log('🎤 Loading existing voice message ID:', voiceMessageId);
         setSelectedVoiceMessageId(voiceMessageId);
@@ -212,6 +215,35 @@ export default function AddPrescriptionModal({
       setLocalVoiceMessages(voiceMessages);
     }
   }, [voiceMessages, visible]);
+
+  useEffect(() => {
+    if (!visible || !existingPrescription) {
+      return;
+    }
+
+    if (selectedVoiceMessageId) {
+      return;
+    }
+
+    const directVoiceId = (existingPrescription as any).voiceMessageId
+      || (existingPrescription as any).voiceMessage?.id;
+    if (directVoiceId) {
+      setSelectedVoiceMessageId(directVoiceId);
+      return;
+    }
+
+    const voiceFileUrl = (existingPrescription as any).voiceMessage?.fileUrl;
+    const voiceFileName = (existingPrescription as any).voiceMessage?.fileName;
+    if (voiceFileUrl || voiceFileName) {
+      const matched = (voiceMessages || []).find((voice) =>
+        (voiceFileUrl && voice.fileUrl === voiceFileUrl) ||
+        (voiceFileName && voice.fileName === voiceFileName)
+      );
+      if (matched?.id) {
+        setSelectedVoiceMessageId(matched.id);
+      }
+    }
+  }, [existingPrescription, voiceMessages, visible, selectedVoiceMessageId]);
 
   const addSchedule = () => {
     setSchedules([...schedules, { time: '12:00', days: [1, 2, 3, 4, 5, 6, 7] }]);
@@ -366,6 +398,19 @@ export default function AddPrescriptionModal({
         throw new Error('Token manquant');
       }
 
+      const normalizedDuration = Number(duration);
+      if (
+        !Number.isFinite(normalizedDuration) ||
+        normalizedDuration <= 0 ||
+        normalizedDuration > MAX_VOICE_DURATION_SECONDS
+      ) {
+        setErrorModal({
+          visible: true,
+          message: `Le message vocal doit durer entre 1 et ${MAX_VOICE_DURATION_SECONDS} secondes.`,
+        });
+        return;
+      }
+
       // Read audio file as base64
       const base64Audio = await FileSystem.readAsStringAsync(audioUri, {
         encoding: FileSystem.EncodingType.Base64,
@@ -388,7 +433,7 @@ export default function AddPrescriptionModal({
         fileUrl: uploadResult.data.fileUrl,
         fileName: `voice_${Date.now()}.m4a`,
         title: title,
-        durationSeconds: duration,
+        durationSeconds: normalizedDuration,
       });
 
       if (createResult.success && createResult.data) {

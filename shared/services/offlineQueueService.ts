@@ -34,6 +34,13 @@ export async function addAction(type: 'confirm' | 'snooze', reminderId: string):
     };
 
     const queue = await getQueue();
+    const duplicate = queue.find(
+      existing => !existing.synced && existing.type === type && existing.reminderId === reminderId
+    );
+    if (duplicate) {
+      console.log(`Already queued ${type} action for reminder ${reminderId}, skipping duplicate`);
+      return;
+    }
     queue.push(action);
     await AsyncStorage.setItem(QUEUE_KEY, JSON.stringify(queue));
 

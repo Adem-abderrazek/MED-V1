@@ -156,6 +156,14 @@ export function usePatientProfile(patientId: string | undefined) {
     try {
       setIsLoading(true);
 
+      const normalizeMedications = (items: any[]) => (items || []).map((item: any) => {
+        const voiceMessage = item?.voiceMessage
+          ? { ...item.voiceMessage, fileUrl: fixUrl(item.voiceMessage.fileUrl) }
+          : item?.voiceMessage;
+        const voiceMessageId = item?.voiceMessageId || voiceMessage?.id || null;
+        return { ...item, voiceMessage, voiceMessageId };
+      });
+
       // Load patient details
       const patientResult = await getPatientDetails(token, patientId, userType || undefined);
       console.log('📋 Patient details result:', patientResult);
@@ -166,7 +174,7 @@ export function usePatientProfile(patientId: string | undefined) {
           setPatient(data.patient);
           // Also use prescriptions from this response
           if (data.prescriptions) {
-            setMedications(data.prescriptions || []);
+            setMedications(normalizeMedications(data.prescriptions));
           }
         } else {
           // Fallback if data is already the patient object
@@ -179,7 +187,7 @@ export function usePatientProfile(patientId: string | undefined) {
       if (!data?.prescriptions) {
         const medicationsResult = await getDoctorPatientMedications(token, patientId);
         if (medicationsResult.success && Array.isArray(medicationsResult.data)) {
-          setMedications(medicationsResult.data);
+          setMedications(normalizeMedications(medicationsResult.data));
         } else {
           setMedications([]);
         }

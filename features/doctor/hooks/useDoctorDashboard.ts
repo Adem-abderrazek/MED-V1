@@ -5,6 +5,7 @@ import { getDoctorPatients, getDoctorDashboard, deletePatient } from '../../../s
 import { Patient, DoctorDashboardStats } from '../../../shared/types';
 import { useAuthToken } from '../../../shared/hooks/useAuthToken';
 import { useTranslation } from 'react-i18next';
+import { performLogout } from '../../../shared/utils/logout';
 
 export function useDoctorDashboard() {
   const router = useRouter();
@@ -133,14 +134,9 @@ export function useDoctorDashboard() {
   }, [token, loadPatients, loadDashboardData, t]);
 
   const handleLogout = useCallback(async () => {
-    try {
-      await AsyncStorage.removeItem('userToken');
-      await AsyncStorage.removeItem('userData');
+    await performLogout(() => {
       router.replace('/(auth)/login' as any);
-    } catch (error) {
-      console.error('Error during logout:', error);
-      router.replace('/(auth)/login' as any);
-    }
+    });
   }, [router]);
 
   useEffect(() => {

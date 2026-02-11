@@ -23,6 +23,9 @@
           "remote-notification",
           "audio"
         ],
+        "NSAppTransportSecurity": {
+          "NSAllowsArbitraryLoads": true
+        },
         "NSUserNotificationsUsageDescription": "We need permission to send you medication reminders.",
         "NSMicrophoneUsageDescription": "We need access to the microphone to record voice messages for medication reminders."
       },
@@ -44,6 +47,12 @@
         "VIBRATE",
         "WAKE_LOCK",
         "POST_NOTIFICATIONS",
+        "INTERNET",
+        "MODIFY_AUDIO_SETTINGS",
+        "RECORD_AUDIO",
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE",
+        "READ_MEDIA_AUDIO",
         "USE_FULL_SCREEN_INTENT",
         "SYSTEM_ALERT_WINDOW",
         "REQUEST_IGNORE_BATTERY_OPTIMIZATIONS",
@@ -66,7 +75,11 @@
         {
           "icon": "./assets/assets/icon.png",
           "color": "#10B981",
-          "sounds": [],
+          "sounds": [
+            "./assets/assets/arabv.caf",
+            "./assets/assets/englishv.caf",
+            "./assets/assets/frenchv.caf"
+          ],
           "mode": "production",
           "iosDisplayInForeground": true,
           "androidMode": "default"

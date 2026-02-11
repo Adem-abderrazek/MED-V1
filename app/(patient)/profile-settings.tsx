@@ -11,8 +11,12 @@ import { useModal } from '../../shared/hooks/useModal';
 import CustomModal from '../../shared/components/ui/Modal';
 import LanguagePickerModal from '../../shared/components/modals/LanguagePickerModal';
 import { useLanguageChange } from '../../shared/hooks/useLanguageChange';
+import { networkMonitor } from '../../shared/services/networkMonitor';
+import { isNetworkError } from '../../shared/utils/errorHandling';
 import { getThemeColors } from '../../config/theme';
 import { changeLanguage } from '../../i18n';
+import { performLogout } from '../../shared/utils/logout';
+import { loadCachedProfile, saveCachedProfile } from '../../shared/utils/profileCache';
 
 interface UserProfile {
   id: string;
@@ -35,12 +39,23 @@ export default function PatientProfileSettingsScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [token, setToken] = useState<string | null>(null);
+  const [userId, setUserId] = useState<string | null>(null);
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
 
   useEffect(() => {
     const loadToken = async () => {
       const storedToken = await AsyncStorage.getItem('userToken');
       setToken(storedToken);
+
+      const userData = await AsyncStorage.getItem('userData');
+      if (userData) {
+        try {
+          const parsed = JSON.parse(userData);
+          setUserId(parsed?.id || null);
+        } catch {
+          setUserId(null);
+        }
+      }
     };
     loadToken();
   }, []);
@@ -50,20 +65,42 @@ export default function PatientProfileSettingsScreen() {
 
     try {
       setIsLoading(true);
+      const online = await networkMonitor.isOnline();
+      if (!online) {
+        const cached = await loadCachedProfile<UserProfile>(userId);
+        if (cached) {
+          setProfile(cached);
+          setNotificationsEnabled(cached.notificationsEnabled ?? true);
+        }
+        return;
+      }
+
       const result = await getUserProfile(token);
       
       if (result.success && result.data) {
         const data = result.data as UserProfile;
         setProfile(data);
         setNotificationsEnabled(data.notificationsEnabled ?? true);
+        await saveCachedProfile(data, userId);
+      } else {
+        const cached = await loadCachedProfile<UserProfile>(userId);
+        if (cached) {
+          setProfile(cached);
+          setNotificationsEnabled(cached.notificationsEnabled ?? true);
+        }
       }
     } catch (error) {
       console.error('Error loading profile:', error);
+      const cached = await loadCachedProfile<UserProfile>(userId);
+      if (cached) {
+        setProfile(cached);
+        setNotificationsEnabled(cached.notificationsEnabled ?? true);
+      }
     } finally {
       setIsLoading(false);
       setIsRefreshing(false);
     }
-  }, [token]);
+  }, [token, userId]);
 
   useEffect(() => {
     loadProfile();
@@ -89,6 +126,11 @@ export default function PatientProfileSettingsScreen() {
 
     try {
       await updateUserProfile(token, { notificationsEnabled: value } as any);
+      if (profile) {
+        const updatedProfile = { ...profile, notificationsEnabled: value };
+        setProfile(updatedProfile);
+        await saveCachedProfile(updatedProfile, userId);
+      }
     } catch (error) {
       console.error('Error updating notification preference:', error);
       setNotificationsEnabled(!value);
@@ -101,15 +143,25 @@ export default function PatientProfileSettingsScreen() {
     try {
       await changeLanguage(language);
       i18n.emit('languageChanged', language);
-      
-      await updateUserProfile(token, { language } as any);
-      
+
       if (profile) {
-        setProfile({ ...profile, language });
+        const updatedProfile = { ...profile, language };
+        setProfile(updatedProfile);
+        await saveCachedProfile(updatedProfile, userId);
       }
+
+      const online = await networkMonitor.isOnline();
+      if (!online) {
+        console.log('Skipping language sync while offline');
+        return;
+      }
+
+      await updateUserProfile(token, { language } as any);
     } catch (error) {
       console.error('Error updating language preference:', error);
-      showModal('error', t('common.error'), t('common.errorMessage'));
+      if (!isNetworkError(error)) {
+        showModal('error', t('common.error'), t('common.errorMessage'));
+      }
     }
   };
 
@@ -117,10 +169,10 @@ export default function PatientProfileSettingsScreen() {
     showModal('info', t('profile.logout'), t('profile.logoutConfirm'));
     // For now, we'll just show the message. In a real app, you'd want a proper confirm dialog
     setTimeout(async () => {
-      await AsyncStorage.removeItem('userToken');
-      await AsyncStorage.removeItem('userData');
-      hideModal();
-      router.replace('/(auth)/login' as any);
+      await performLogout(() => {
+        hideModal();
+        router.replace('/(auth)/login' as any);
+      });
     }, 2000);
   };
 

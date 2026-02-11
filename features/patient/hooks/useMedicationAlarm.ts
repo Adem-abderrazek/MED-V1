@@ -6,11 +6,55 @@ import notifee from '@notifee/react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import localReminderService from '../../../shared/services/localReminderService';
 import apiService from '../../../shared/services/api';
+import { offlineQueueService } from '../../../shared/services/offlineQueueService';
+import { networkMonitor } from '../../../shared/services/networkMonitor';
+
+const MEDS_CACHE_PREFIX = '@patient_medications_by_date:';
+const STATS_CACHE_PREFIX = '@patient_medication_stats_by_date:';
 
 interface UseMedicationAlarmParams {
   reminderId: string;
   audioPath?: string;
 }
+
+const updateCachedMedicationStatus = async (reminderIds: string[]) => {
+  try {
+    const reminderSet = new Set(reminderIds);
+    const keys = await AsyncStorage.getAllKeys();
+    const medsKeys = keys.filter(key => key.startsWith(MEDS_CACHE_PREFIX));
+
+    for (const medsKey of medsKeys) {
+      const medsJson = await AsyncStorage.getItem(medsKey);
+      if (!medsJson) continue;
+
+      const meds = JSON.parse(medsJson) as Array<{ reminderId: string; status: string }>;
+      let updated = false;
+      const updatedMeds = meds.map(med => {
+        if (reminderSet.has(med.reminderId) && med.status !== 'taken') {
+          updated = true;
+          return { ...med, status: 'taken' };
+        }
+        return med;
+      });
+
+      if (!updated) continue;
+
+      await AsyncStorage.setItem(medsKey, JSON.stringify(updatedMeds));
+
+      const dateKey = medsKey.replace(MEDS_CACHE_PREFIX, '');
+      const total = updatedMeds.length;
+      const taken = updatedMeds.filter(med => med.status === 'taken').length;
+      const adherenceRate = total > 0 ? Math.round((taken / total) * 100) : 0;
+      const statsKey = `${STATS_CACHE_PREFIX}${dateKey}`;
+      await AsyncStorage.setItem(
+        statsKey,
+        JSON.stringify({ totalMedicationsToday: total, takenToday: taken, adherenceRate })
+      );
+    }
+  } catch (error) {
+    console.error('Error updating cached medication status:', error);
+  }
+};
 
 export function useMedicationAlarm({ reminderId, audioPath }: UseMedicationAlarmParams) {
   const router = useRouter();
@@ -84,18 +128,22 @@ export function useMedicationAlarm({ reminderId, audioPath }: UseMedicationAlarm
       }
 
       await localReminderService.confirmReminderLocally(reminderId);
+      await updateCachedMedicationStatus([reminderId]);
+      await AsyncStorage.setItem('@patient_dashboard_refresh', new Date().toISOString());
 
       const token = await AsyncStorage.getItem('userToken');
       if (token && reminderId) {
-        try {
-          await apiService.confirmMedicationTaken(token, [reminderId]);
-          console.log('✅ Medication confirmed with backend');
-        } catch (error) {
-          console.error('Failed to sync with backend, will retry later:', error);
-          const pending = await AsyncStorage.getItem('@pending_confirmations');
-          const list = pending ? JSON.parse(pending) : [];
-          list.push({ reminderId, timestamp: new Date().toISOString() });
-          await AsyncStorage.setItem('@pending_confirmations', JSON.stringify(list));
+        const isOnline = await networkMonitor.isOnline();
+        if (isOnline) {
+          try {
+            await apiService.confirmMedicationTaken(token, [reminderId]);
+            console.log('✅ Medication confirmed with backend');
+          } catch (error) {
+            console.error('Failed to sync with backend, will retry later:', error);
+            await offlineQueueService.addAction('confirm', reminderId);
+          }
+        } else {
+          await offlineQueueService.addAction('confirm', reminderId);
         }
       }
 

@@ -32,6 +32,8 @@ interface VoiceRecorderModalProps {
   };
 }
 
+const MAX_RECORDING_DURATION_SECONDS = 30;
+
 export default function VoiceRecorderModal({
   visible,
   onClose,
@@ -53,37 +55,14 @@ export default function VoiceRecorderModal({
   const [isSaving, setIsSaving] = useState(false);
   const [title, setTitle] = useState('');
   const [titleError, setTitleError] = useState('');
+  const [recordingError, setRecordingError] = useState('');
   const [isPlaying, setIsPlaying] = useState(false);
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const isAutoStoppingRef = useRef(false);
   
   // Initialize audio recorder and player
   const recorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
   const player = useAudioPlayer(recordingUri ? { uri: recordingUri } : null);
-
-  // Listen to player status changes - only update when audio finishes naturally
-  useEffect(() => {
-    if (!player || !recordingUri || !isPlaying) {
-      return;
-    }
-
-    // Check if audio has finished playing naturally
-    const checkStatus = () => {
-      try {
-        const status = player.getStatus();
-        // Only update if audio finished naturally (not paused manually)
-        if (!status.isPlaying && !status.isPaused) {
-          setIsPlaying(false);
-        }
-      } catch (err) {
-        // Ignore errors
-      }
-    };
-
-    // Check less frequently, only to catch when audio finishes naturally
-    const interval = setInterval(checkStatus, 1000);
-
-    return () => clearInterval(interval);
-  }, [player, recordingUri, isPlaying]);
 
   useEffect(() => {
     return () => {
@@ -109,6 +88,9 @@ export default function VoiceRecorderModal({
       // Reset state
       setRecordingDuration(0);
       setRecordingUri(null);
+      setRecordingError('');
+      setTitleError('');
+      isAutoStoppingRef.current = false;
 
       // Start recording
       await recorder.prepareToRecordAsync();
@@ -117,8 +99,22 @@ export default function VoiceRecorderModal({
       timerRef.current = setInterval(() => {
         setRecordingDuration((prev) => {
           const newDuration = prev + 1;
-          actualDurationRef.current = newDuration;
-          return newDuration;
+          const boundedDuration = Math.min(newDuration, MAX_RECORDING_DURATION_SECONDS);
+          actualDurationRef.current = boundedDuration;
+
+          if (
+            boundedDuration >= MAX_RECORDING_DURATION_SECONDS &&
+            !isAutoStoppingRef.current
+          ) {
+            isAutoStoppingRef.current = true;
+            setRecordingError('Durée maximale atteinte (30 secondes).');
+            // Stop recording automatically once the max duration is reached.
+            setTimeout(() => {
+              stopRecording();
+            }, 0);
+          }
+
+          return boundedDuration;
         });
       }, 1000);
     } catch (err) {
@@ -148,7 +144,10 @@ export default function VoiceRecorderModal({
       
       // Update duration from actual recording if available
       if (status.durationMillis) {
-        const actualDuration = Math.floor(status.durationMillis / 1000);
+        const actualDuration = Math.min(
+          Math.floor(status.durationMillis / 1000),
+          MAX_RECORDING_DURATION_SECONDS
+        );
         console.log('⏱️ Actual recording duration:', actualDuration, 'seconds');
         setRecordingDuration(actualDuration);
         actualDurationRef.current = actualDuration;
@@ -229,6 +228,10 @@ export default function VoiceRecorderModal({
 
     // Use the ref value to ensure we have the most accurate duration
     const finalDuration = actualDurationRef.current || recordingDuration;
+    if (finalDuration <= 0 || finalDuration > MAX_RECORDING_DURATION_SECONDS) {
+      setRecordingError('Le message vocal doit durer entre 1 et 30 secondes.');
+      return;
+    }
     console.log('📝 Saving voice message with duration:', finalDuration, 'seconds (ref:', actualDurationRef.current, 'state:', recordingDuration, ')');
     console.log('📝 Title value:', trimmedTitle);
     
@@ -266,7 +269,10 @@ export default function VoiceRecorderModal({
     setRecordingUri(null);
     setRecordingDuration(0);
     actualDurationRef.current = 0;
+    isAutoStoppingRef.current = false;
     setTitle('');
+    setTitleError('');
+    setRecordingError('');
     setIsPlaying(false);
     onClose();
   };
@@ -326,6 +332,9 @@ export default function VoiceRecorderModal({
               </View>
 
               <Text style={styles.duration}>{formatDuration(recordingDuration)}</Text>
+              <Text style={styles.durationHint}>
+                Max: {formatDuration(MAX_RECORDING_DURATION_SECONDS)}
+              </Text>
               
               {recorder.isRecording && (
                 <Text style={styles.recordingText}>Enregistrement en cours...</Text>
@@ -333,6 +342,9 @@ export default function VoiceRecorderModal({
               {recordingUri && (
                 <Text style={styles.recordingText}>Enregistrement terminé</Text>
               )}
+              {recordingError ? (
+                <Text style={styles.errorText}>{recordingError}</Text>
+              ) : null}
             </View>
 
             {/* Controls */}
@@ -490,6 +502,11 @@ const styles = StyleSheet.create({
   recordingText: {
     fontSize: 16,
     color: 'rgba(255, 255, 255, 0.7)',
+  },
+  durationHint: {
+    fontSize: 13,
+    color: 'rgba(255, 255, 255, 0.65)',
+    marginBottom: 8,
   },
   controls: {
     alignItems: 'center',

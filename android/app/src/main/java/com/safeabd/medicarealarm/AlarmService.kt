@@ -66,6 +66,13 @@ class AlarmService : Service() {
 
     private fun createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val manager = getSystemService(NotificationManager::class.java)
+            val existing = manager.getNotificationChannel(CHANNEL_ID)
+
+            if (existing != null && existing.importance < NotificationManager.IMPORTANCE_HIGH) {
+                manager.deleteNotificationChannel(CHANNEL_ID)
+            }
+
             val channel = NotificationChannel(
                 CHANNEL_ID,
                 "Medication Alarms",
@@ -75,8 +82,9 @@ class AlarmService : Service() {
                 setSound(null, null)
                 enableVibration(true)
                 lockscreenVisibility = Notification.VISIBILITY_PUBLIC
+                setBypassDnd(true)
             }
-            val manager = getSystemService(NotificationManager::class.java)
+
             manager.createNotificationChannel(channel)
         }
     }
