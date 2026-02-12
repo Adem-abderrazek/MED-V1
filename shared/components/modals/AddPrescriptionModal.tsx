@@ -52,6 +52,9 @@ interface VoiceMessage {
   fileUrl: string;
   title?: string;
   durationSeconds: number;
+  audioChecksum?: string | null;
+  audioVersion?: number | null;
+  audioFormat?: string | null;
   isActive: boolean;
   createdAt: string;
 }
@@ -431,18 +434,22 @@ export default function AddPrescriptionModal({
       const createResult = await apiService.createVoiceMessage(token, {
         patientId: patientId,
         fileUrl: uploadResult.data.fileUrl,
-        fileName: `voice_${Date.now()}.m4a`,
+        fileName: uploadResult.data.fileName || `voice_${Date.now()}.caf`,
         title: title,
-        durationSeconds: normalizedDuration,
+        durationSeconds: uploadResult.data.durationSeconds || normalizedDuration,
+        audioChecksum: uploadResult.data.audioChecksum,
+        audioVersion: uploadResult.data.audioVersion,
+        audioFormat: uploadResult.data.audioFormat,
       });
 
       if (createResult.success && createResult.data) {
         // Reload voice messages
         const voiceResult = await apiService.getPatientVoiceMessages(token, patientId);
-        if (voiceResult.success && voiceResult.data) {
-          setLocalVoiceMessages(voiceResult.data);
+        if (voiceResult.success && Array.isArray(voiceResult.data)) {
+          const fetchedVoices = voiceResult.data as VoiceMessage[];
+          setLocalVoiceMessages(fetchedVoices);
           if (onVoiceMessagesUpdate) {
-            onVoiceMessagesUpdate(voiceResult.data);
+            onVoiceMessagesUpdate(fetchedVoices);
           }
           // Auto-select the new voice
           setSelectedVoiceMessageId(createResult.data.id);

@@ -124,7 +124,15 @@ export async function uploadVoiceMessage(
   token: string,
   payload: { fileBase64: string; fileName?: string; mimeType?: string }
 ) {
-  return request<{ fileUrl: string; path: string }>('/tutor/voice-messages/upload', {
+  return request<{
+    fileUrl: string;
+    path: string;
+    fileName?: string;
+    durationSeconds?: number;
+    audioChecksum?: string;
+    audioVersion?: number;
+    audioFormat?: string;
+  }>('/tutor/voice-messages/upload', {
     method: 'POST',
     headers: { 'Authorization': `Bearer ${token}` },
     body: JSON.stringify(payload),
@@ -139,6 +147,9 @@ export async function createVoiceMessage(
     fileName: string;
     title?: string;
     durationSeconds: number;
+    audioChecksum?: string;
+    audioVersion?: number;
+    audioFormat?: string;
   }
 ) {
   return request<{ id: string }>('/tutor/voice-messages', {

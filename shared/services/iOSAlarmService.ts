@@ -133,6 +133,8 @@ export class iOSAlarmService {
       medicationName,
       scheduledTime: scheduledTime.toISOString(),
       criticalAlertsEnabled: CRITICAL_ALERTS_ENABLED,
+      soundName: soundName || "default",
+      hasVoicePath: !!voicePath,
     });
 
     // Build notification content

@@ -52,6 +52,9 @@ export interface LocalReminder {
   voiceFileName?: string | null;
   voiceTitle?: string | null;
   voiceDuration?: number;
+  voiceChecksum?: string | null;
+  voiceVersion?: number | null;
+  voiceFormat?: string | null;
 }
 
 type StoredReminderV1 = {
@@ -73,6 +76,9 @@ type StoredReminderV2 = {
     voiceUrl?: string | null;
     voiceFileName?: string | null;
     localPath?: string | null;
+    voiceChecksum?: string | null;
+    voiceVersion?: number | null;
+    voiceFormat?: string | null;
   };
   schedule: {
     platform: 'android_native' | 'expo';
@@ -120,8 +126,96 @@ function buildFingerprint(reminder: LocalReminder): string {
     reminder.imageUrl || '',
     reminder.voiceUrl || '',
     reminder.voiceFileName || '',
+    reminder.voiceChecksum || '',
+    reminder.voiceVersion ?? '',
+    reminder.voiceFormat || '',
   ].join('|');
   return hashString(payload);
+}
+
+function normalizeVoiceFormat(format?: string | null): string | null {
+  if (!format) return null;
+  const normalized = format.replace(/^\./, '').trim().toLowerCase();
+  return normalized || null;
+}
+
+function resolveVoiceExtension(reminder: Pick<LocalReminder, 'voiceFileName' | 'voiceFormat'>): string {
+  const extensionFromFileName = reminder.voiceFileName?.split('.').pop()?.trim().toLowerCase();
+  if (extensionFromFileName) {
+    return extensionFromFileName;
+  }
+  return normalizeVoiceFormat(reminder.voiceFormat) || 'm4a';
+}
+
+function getIOSLibrarySoundsDirectory(): string | null {
+  if (Platform.OS !== 'ios' || !FileSystem.documentDirectory) {
+    return null;
+  }
+  return FileSystem.documentDirectory.replace(/Documents\/?$/, 'Library/Sounds/');
+}
+
+function buildIOSDynamicSoundName(reminder: LocalReminder): string {
+  const checksumSeed = reminder.voiceChecksum || hashString(`${reminder.voiceUrl || reminder.reminderId}|${reminder.voiceVersion || ''}`);
+  const safeChecksum = checksumSeed.replace(/[^a-zA-Z0-9]/g, '').slice(0, 24);
+  const safeReminder = reminder.reminderId.replace(/[^a-zA-Z0-9]/g, '').slice(0, 12);
+  const version = Number.isFinite(Number(reminder.voiceVersion)) ? Number(reminder.voiceVersion) : 1;
+  return `voice_${safeChecksum || safeReminder || 'fallback'}_v${version}.caf`;
+}
+
+async function resolveIOSNotificationSoundName(
+  reminder: LocalReminder,
+  localAudioPath: string | null
+): Promise<string> {
+  const fallbackSound = getIOSSoundName();
+  if (Platform.OS !== 'ios') {
+    return fallbackSound;
+  }
+
+  if (!localAudioPath || !reminder.voiceUrl) {
+    return fallbackSound;
+  }
+
+  const extension = resolveVoiceExtension(reminder);
+  if (extension !== 'caf') {
+    console.log(`iOS dynamic sound skipped (${extension}); using bundled fallback sound`);
+    return fallbackSound;
+  }
+
+  const soundsDir = getIOSLibrarySoundsDirectory();
+  if (!soundsDir) {
+    console.warn('Unable to resolve iOS Library/Sounds directory; using bundled fallback sound');
+    return fallbackSound;
+  }
+
+  const soundName = buildIOSDynamicSoundName(reminder);
+  const destinationPath = `${soundsDir}${soundName}`;
+
+  try {
+    const sourceInfo = await FileSystem.getInfoAsync(localAudioPath);
+    if (!sourceInfo.exists) {
+      console.warn(`Dynamic voice file not found at ${localAudioPath}; using bundled fallback sound`);
+      return fallbackSound;
+    }
+
+    const dirInfo = await FileSystem.getInfoAsync(soundsDir);
+    if (!dirInfo.exists) {
+      await FileSystem.makeDirectoryAsync(soundsDir, { intermediates: true });
+    }
+
+    const existingTarget = await FileSystem.getInfoAsync(destinationPath);
+    if (!existingTarget.exists) {
+      await FileSystem.copyAsync({
+        from: localAudioPath,
+        to: destinationPath,
+      });
+      console.log(`Prepared iOS dynamic notification sound: ${soundName}`);
+    }
+
+    return soundName;
+  } catch (error) {
+    console.error('Failed to prepare iOS dynamic notification sound, using bundled fallback:', error);
+    return fallbackSound;
+  }
 }
 
 async function loadSyncState(): Promise<SyncState> {
@@ -130,8 +224,14 @@ async function loadSyncState(): Promise<SyncState> {
     if (!stored) {
       return { schemaVersion: 2, inProgress: false };
     }
-    const parsed = JSON.parse(stored) as SyncState;
-    return { schemaVersion: 2, inProgress: false, ...parsed };
+    const parsed = JSON.parse(stored) as Partial<SyncState>;
+    return {
+      schemaVersion:
+        typeof parsed.schemaVersion === 'number' ? parsed.schemaVersion : 2,
+      lastSyncAt: parsed.lastSyncAt,
+      lastFullReconcileAt: parsed.lastFullReconcileAt,
+      inProgress: false,
+    };
   } catch (error) {
     console.error('Error loading sync state:', error);
     return { schemaVersion: 2, inProgress: false };
@@ -254,7 +354,7 @@ async function downloadVoiceMessageLegacy(reminder: LocalReminder): Promise<stri
     await ensureVoiceMessagesDir();
 
     // Create unique filename based on prescription ID
-    const extension = reminder.voiceFileName?.split('.').pop() || 'm4a';
+    const extension = resolveVoiceExtension(reminder);
     const localFileName = `${reminder.prescriptionId}.${extension}`;
     const localPath = `${VOICE_MESSAGES_DIR}${localFileName}`;
 
@@ -298,7 +398,7 @@ async function downloadVoiceMessage(
   try {
     await ensureVoiceMessagesDir();
 
-    const extension = reminder.voiceFileName?.split('.').pop() || 'm4a';
+    const extension = resolveVoiceExtension(reminder);
     const localFileName = `${reminder.prescriptionId}.${extension}`;
     const localPath = `${VOICE_MESSAGES_DIR}${localFileName}`;
 
@@ -365,7 +465,10 @@ async function ensureVoiceMessage(
   const existingVoice = existing?.voice;
   const voiceMatches =
     existingVoice?.voiceUrl === reminder.voiceUrl &&
-    existingVoice?.voiceFileName === reminder.voiceFileName;
+    existingVoice?.voiceFileName === reminder.voiceFileName &&
+    (existingVoice?.voiceChecksum || null) === (reminder.voiceChecksum || null) &&
+    (existingVoice?.voiceVersion || null) === (reminder.voiceVersion || null) &&
+    (existingVoice?.voiceFormat || null) === (reminder.voiceFormat || null);
 
   if (!voiceMatches && existingVoice?.localPath) {
     console.log(`Voice changed for reminder ${reminder.reminderId}, refreshing cache`);
@@ -405,6 +508,9 @@ function buildStoredRecord(
       voiceUrl: reminder.voiceUrl || null,
       voiceFileName: reminder.voiceFileName || null,
       localPath: voicePath || null,
+      voiceChecksum: reminder.voiceChecksum || null,
+      voiceVersion: reminder.voiceVersion || null,
+      voiceFormat: reminder.voiceFormat || null,
     },
     schedule,
     fingerprint,
@@ -923,7 +1029,7 @@ async function scheduleReminderInternal(
 
   if (Platform.OS === 'ios') {
     const notificationIds: string[] = [];
-    const soundName = getIOSSoundName();
+    const soundName = await resolveIOSNotificationSoundName(reminder, audioPath);
     const now = Date.now();
     let baseTime = scheduledDate.getTime();
     if (baseTime <= now + 3000) {
@@ -1345,6 +1451,9 @@ export async function snoozeReminderLocally(reminderId: string): Promise<void> {
     patientId: stored.patientId,
     voiceUrl: stored.voice?.voiceUrl || null,
     voiceFileName: stored.voice?.voiceFileName || null,
+    voiceChecksum: stored.voice?.voiceChecksum || null,
+    voiceVersion: stored.voice?.voiceVersion || null,
+    voiceFormat: stored.voice?.voiceFormat || null,
     voiceTitle: undefined,
     voiceDuration: undefined,
   };

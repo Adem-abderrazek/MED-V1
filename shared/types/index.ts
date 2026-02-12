@@ -113,6 +113,9 @@ export interface VoiceMessage {
   fileUrl: string;
   title?: string;
   durationSeconds: number;
+  audioChecksum?: string | null;
+  audioVersion?: number | null;
+  audioFormat?: string | null;
   isActive: boolean;
   createdAt: string;
 }
@@ -132,6 +135,9 @@ export interface LocalReminder {
   voiceFileName?: string | null;
   voiceTitle?: string | null;
   voiceDuration?: number;
+  voiceChecksum?: string | null;
+  voiceVersion?: number | null;
+  voiceFormat?: string | null;
 }
 
 // ========== API Types ==========
